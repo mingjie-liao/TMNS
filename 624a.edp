@@ -1,0 +1,170 @@
+// Parameters
+real nu = 1./100.;
+real dt = 0.1;
+real t = 0;
+// Mesh
+real a= 1.5, b= 5, c=15;
+border L1(t=0,1) { x=-b; y=a-3*t; }
+border L2(t=0,1) { x=-b+c*t; y=-a; }
+border L3(t=0,1) { x=c-5; y=3*t-a; }
+border L4(t=0,1) { x=2*b-c*t; y=a; }
+int n = 5;
+mesh Th1 = buildmesh(L1(2*n)+L2(10*n)+L3(2*n)+L4(10*n)); 
+plot(Th1,ps="./multiscale.eps",bw=1);
+// Fespace
+fespace Xh1(Th1, P2);
+Xh1 u1, v1;
+Xh1 u2, v2;
+Xh1 up1, up2;
+Xh1 psi, phi;
+Xh1 fx;
+fespace Mh1(Th1, P1);
+Mh1 p, q;
+real alpha = 1/dt;
+real epsr=1e-8;
+problem NS ([u1, u2, p], [v1, v2, q])
+	= int2d(Th1)(
+		  alpha*(u1*v1 + u2*v2)
+		+nu * (
+			  dx(u1)*dx(v1) + dy(u1)*dy(v1)
+			+ dx(u2)*dx(v2) + dy(u2)*dy(v2)
+		)
+		- p*q*epsr
+		+ p*dx(v1) + p*dy(v2)
+		//- fx*v1 
+		+ q*dx(u1) + q*dy(u2)
+	)
+	+ int2d(Th1)(
+		- alpha*convect([up1, up2], -dt, up1)*v1
+		- alpha*convect([up1, up2], -dt, up2)*v2
+		- fx*v1
+	)
+                - int1d(Th1, L3)(25*p*v1)
+	+ on(L2, L4, u1=0, u2=0)
+	+ on(L1, u1=25*sin(pow(pi*t,2))*(1-pow(y/1.5,2)), u2=0);
+
+// real t = 0;
+for (int i = 0; i <= 0; i++) {
+	// Update
+	up1 = u1;
+	up2 = u2;
+	// Solve
+	fx = 0;
+	t = t+dt;
+	NS;
+
+	// Plot
+	if (!(i % 1))
+		plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=1);
+	cout << "i = " << i << endl;
+	cout << "u1=" <<u1<< endl;
+}
+real G=1;
+real J=0.04;
+real Q=30;
+real Z1=int1d(Th1)(2*dx(u1)*N.x*(1-N.x*N.x)-(dx(u2)+dy(u1))*N.x*N.x*N.y+N.y*(1-N.x*N.x)*(dy(u1)+dx(u2))-2*dy(u2)*N.x*N.y*N.y);
+real Z2=int1d(Th1)((dx(u2)+dy(u1))*(1-N.y*N.y)*N.x-2*dx(u1)*N.x*N.x*N.y+2*dy(u2)*(1-N.y*N.y)*N.y-N.x*N.y*N.y*(dy(u1)+dx(u2)));
+real M1=Z1*J*Q*G;
+real M2=Z2*J*Q*G;
+cout << "Z 1= " << Z1<< endl;
+cout << "Z 2= " << Z2<< endl;
+cout << "M1= " << M1<< endl;
+cout << "M2= " << M2<< endl;
+real U0=0;
+real R0=1/(1+U0)*1/(1+M1*M1+M2*M2);
+//real Z=5/(10^5);
+real Z=1;
+real K=1;
+real U1=U0+K*Z*R0;
+cout<<"U1="<<U1<<endl;
+// Rmess
+real d=U1;
+border L5(t=0,1) { x=-b; y=a-3*t; }
+border L6(t=0,1) { x=-b+c*t; y=d*exp(-pow(x,2))-a; }
+border L7(t=0,1) { x=c-5; y=3*t-a; }
+border L8(t=0,1) { x=2*b-c*t; y=a-d*exp(-pow(x,2)); }
+mesh Th2 = buildmesh(L5(2*n)+L6(10*n)+L7(2*n)+L8(10*n)); 
+plot(Th2,ps="multiscale1.eps",bw=1);
+savemesh(Th2,"toto.msh");
+// Fespace
+fespace Xh2(Th2, P2);
+Xh2 u11, v11;
+Xh2 u12, v12;
+Xh2 up11, up12;
+fespace Mh2(Th2, P1);
+Mh2 p1, q1;
+// func real f1(real t) {
+//        return tanh(y)/L*(1/P)*sin(2*pi*t/P);
+// }
+// func f2=0;
+matrix A=interpolate(Xh2,Xh1);
+matrix B=interpolate(Mh2,Mh1);
+//cout<<"u1.size"<<u1.n<<endl;
+//cout<<"c1.size"<<c1.n<<endl;
+u11[] = A*u1[]; 
+u12[] = A*u2[];
+p1[] = B*p[];
+//cout<<" A Xh2<-Xh1 " << A<< endl;
+//cout<<" B Mh2<-Mh1 " << B<< endl;
+//plot(coef=0.2, cmm="[u11, u12] and p1", p1, [u11, u12], wait=1);
+problem NS1 ([u11, u12, p1], [v11, v12, q1])
+	= int2d(Th2)(
+		  alpha*(u11*v11 + u12*v12)
+		+nu * (
+			  dx(u11)*dx(v11) + dy(u11)*dy(v11)
+			+ dx(u12)*dx(v12) + dy(u12)*dy(v12)
+		)
+		- p1*q1*epsr
+		+ p1*dx(v11) + p1*dy(v12)
+		//- fx*v1 
+		+ q1*dx(u11) + q1*dy(u12)
+	)
+	+ int2d(Th2)(
+		- alpha*convect([up11, up12], -dt, up11)*v11
+		- alpha*convect([up11, up12], -dt, up12)*v12
+		- fx*v11
+	)
+                - int1d(Th2, L7)(25*p1*v11)
+	+ on(L6, L8, u11=0, u12=0)
+	+ on(L5, u11=25*sin(pow(pi*t,2))*(1-pow(y/1.5,2)), u12=0);
+
+
+// real t = 0;
+for (int i = 0; i <= 1; i++) {
+	// Update
+	up11 = u11;
+	up12 = u12;
+	// Solve
+	fx = 0;
+	t = t+dt;
+	NS1;
+
+	// Plot
+	if (!(i % 1))
+		plot(coef=0.2, cmm="[u11, u12] and p1", p1, [u11, u12], wait=1);
+}
+{
+ofstream file("u11.txt");
+file << u11[] << endl;
+}
+{
+ofstream file("u12.txt");
+file << u12[] << endl;
+}
+{
+ofstream file("p1.txt");
+file << p1[] << endl;
+}
+{
+ofstream file("R0.txt");
+file << R0 << endl;
+}
+{
+ofstream file("U1.txt");
+file << U1 << endl;
+}
+
+
+// Re-calculate stream-lines
+// streamlines;
+// plot(psi, wait=1);
