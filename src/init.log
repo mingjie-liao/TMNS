@@ -1,0 +1,990 @@
+-- FreeFem++ v4.6 (mer.  3 juin 2020 21:42:05 - git v4.6-99-g8e03cec3)
+ Load: lg_fem lg_mesh lg_mesh3 eigenvalue
+    1 : // Parameters
+    2 : real nu = 1./100.;
+    3 : real dt = 0.0125;
+    4 : real t = 0;
+    5 : // Initial rectangle mesh
+    6 : real a= 1.5, b= 5, c=15;
+    7 : border L1(t=0,1) { x=-b; y=a-3*t; }
+    8 : border L2(t=0,1) { x=-b+c*t; y=-a; }
+    9 : border L3(t=0,1) { x=c-5; y=3*t-a; }
+   10 : border L4(t=0,1) { x=2*b-c*t; y=a; }
+   11 : int n = 5;
+   12 : mesh Th1 = buildmesh(L1(2*n)+L2(10*n)+L3(2*n)+L4(10*n));
+   13 : plot(Th1,ps="./multiscale.eps",bw=1);
+   14 :
+   15 : // Fespace
+   16 : fespace Xh1(Th1, P2);
+   17 : Xh1 u1, v1;
+   18 : Xh1 u2, v2;
+   19 : Xh1 up1, up2;
+   20 : Xh1 psi, phi;
+   21 : Xh1 fx;
+   22 : fespace Mh1(Th1, P1);
+   23 : Mh1 p, q;
+   24 : real alpha = 1/dt;
+   25 : real epsr=1e-8;
+   26 : problem NS ([u1, u2, p], [v1, v2, q])
+   27 :         = int2d(Th1)(
+   28 :                   alpha*(u1*v1 + u2*v2)
+   29 :                 +nu * (
+   30 :                           dx(u1)*dx(v1) + dy(u1)*dy(v1)
+   31 :                         + dx(u2)*dx(v2) + dy(u2)*dy(v2)
+   32 :                 )
+   33 :                 - p*q*epsr
+   34 :                 + p*dx(v1) + p*dy(v2)
+   35 :                 //- fx*v1
+   36 :                 + q*dx(u1) + q*dy(u2)
+   37 :         )
+   38 :         + int2d(Th1)(
+   39 :                 - alpha*convect([up1, up2], -dt, up1)*v1
+   40 :                 - alpha*convect([up1, up2], -dt, up2)*v2
+   41 :                 - fx*v1
+   42 :         )
+   43 :                 - int1d(Th1, L3)(25*p*v1)
+   44 :         + on(L2, L4, u1=0, u2=0)
+   45 :         + on(L1, u1=25*(pow(sin(pi*t),2))*(1-pow(y/1.5,2)), u2=0);
+   46 :
+   47 : // real t = 0;
+   48 : for (int i = 0; i <= 80; i++) {
+   49 :         // Update
+   50 :         up1 = u1;
+   51 :         up2 = u2;
+   52 :         // Solve
+   53 :         fx = 0;
+   54 :         NS;
+   55 :
+   56 :         // Plot
+   57 :         // if (!(i % 3))
+   58 :         plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
+   59 :         cout << "i = " << i << ", t = "<<t<< endl;
+   60 :         t = t+dt;
+   61 :         // cout<<"t="<<t<<endl;
+   62 :         //cout << u1.n;
+   63 : }
+   64 : real G=1;
+   65 : real J=0.04;
+   66 : real Q=30;
+   67 : real Z1=int1d(Th1)(2*dx(u1)*N.x*(1-N.x*N.x)-(dx(u2)+dy(u1))*N.x*N.x*N.y+N.y*(1-N.x*N.x)*(dy(u1)+dx(u2))-2*dy(u2)*N.x*N.y*N.y);
+   68 : real Z2=int1d(Th1)((dx(u2)+dy(u1))*(1-N.y*N.y)*N.x-2*dx(u1)*N.x*N.x*N.y+2*dy(u2)*(1-N.y*N.y)*N.y-N.x*N.y*N.y*(dy(u1)+dx(u2)));
+   69 : real M1=Z1*J*Q*G;
+   70 : real M2=Z2*J*Q*G;
+   71 : // cout << "Z 1= " << Z1<< endl;
+   72 : // cout << "Z 2= " << Z2<< endl;
+   73 : // cout << "M1= " << M1<< endl;
+   74 : // cout << "M2= " << M2<< endl;
+   75 : real U0=0;
+   76 : real R0=1/(1+U0)*1/(1+M1*M1+M2*M2);
+   77 : //real Z=5/(10^5);
+   78 : real Z=1;
+   79 : real K=1;
+   80 : real U1=U0+K*Z*R0;
+   81 : // cout<<"U1="<<U1<<endl;
+   82 : // Rmess
+   83 : cout<<"Remessing..."<<endl;
+   84 : real d=U1;
+   85 : border L5(t=0,1) { x=-b; y=a-3*t; }
+   86 : border L6(t=0,1) { x=-b+c*t; y=d*exp(-pow(x,2))-a; }
+   87 : border L7(t=0,1) { x=c-5; y=3*t-a; }
+   88 : border L8(t=0,1) { x=2*b-c*t; y=a-d*exp(-pow(x,2)); }
+   89 : mesh Th2 = buildmesh(L5(2*n)+L6(10*n)+L7(2*n)+L8(10*n));
+   90 : //plot(Th2,ps="multiscale1.eps",bw=1,wait=false);
+   91 : savemesh(Th2,"toto.msh");
+   92 : // Fespace
+   93 : fespace Xh2(Th2, P2);
+   94 : Xh2 u11, v11;
+   95 : Xh2 u12, v12;
+   96 : Xh2 up11, up12;
+   97 : fespace Mh2(Th2, P1);
+   98 : Mh2 p1, q1;
+   99 : // func real f1(real t) {
+  100 : //        return tanh(y)/L*(1/P)*sin(2*pi*t/P);
+  101 : // }
+  102 : // func f2=0;
+  103 : // Construct interpolation matrix
+  104 : matrix A=interpolate(Xh2,Xh1);
+  105 : matrix B=interpolate(Mh2,Mh1);
+  106 : //cout<<"u1.size"<<u1.n<<endl;
+  107 : //cout<<"c1.size"<<c1.n<<endl;
+  108 : u11[] = A*u1[];
+  109 : u12[] = A*u2[];
+  110 : p1[] = B*p[];
+  111 : //cout<<" A Xh2<-Xh1 " << A<< endl;
+  112 : //cout<<" B Mh2<-Mh1 " << B<< endl;
+  113 : //plot(coef=0.2, cmm="[u11, u12] and p1", p1, [u11, u12], wait=1);
+  114 : problem NS1 ([u11, u12, p1], [v11, v12, q1])
+  115 :         = int2d(Th2)(
+  116 :                   alpha*(u11*v11 + u12*v12)
+  117 :                 +nu * (
+  118 :                           dx(u11)*dx(v11) + dy(u11)*dy(v11)
+  119 :                         + dx(u12)*dx(v12) + dy(u12)*dy(v12)
+  120 :                 )
+  121 :                 - p1*q1*epsr
+  122 :                 + p1*dx(v11) + p1*dy(v12)
+  123 :                 //- fx*v1
+  124 :                 + q1*dx(u11) + q1*dy(u12)
+  125 :         )
+  126 :         + int2d(Th2)(
+  127 :                 - alpha*convect([up11, up12], -dt, up11)*v11
+  128 :                 - alpha*convect([up11, up12], -dt, up12)*v12
+  129 :                 - fx*v11
+  130 :         )
+  131 :                 - int1d(Th2, L7)(25*p1*v11)
+  132 :         + on(L6, L8, u11=0, u12=0)
+  133 :         + on(L5, u11=25*(pow(sin(pi*t),2))*(1-pow(y/1.5,2)), u12=0);
+  134 :
+  135 :
+  136 : // real t = 0;
+  137 : for (int i = 0; i <= 79; i++) {
+  138 :         // Update
+  139 :         up11 = u11;
+  140 :         up12 = u12;
+  141 :         // Solve
+  142 :         fx = 0;
+  143 :         NS1;
+  144 :         cout << "i = " << i << ", t = "<<t<< endl;
+  145 :         t = t+dt;
+  146 :         // Plot
+  147 :         // if (!(i % 3))
+  148 :         plot(coef=0.2, cmm="[u11, u12] and p1", p1, [u11, u12], wait=false);
+  149 : }
+  150 : {
+  151 : ofstream file("u11.txt");
+  152 : file << u11[] << endl;
+  153 : }
+  154 : {
+  155 : ofstream file("u12.txt");
+  156 : file << u12[] << endl;
+  157 : }
+  158 : {
+  159 : ofstream file("p1.txt");
+  160 : file << p1[] << endl;
+  161 : }
+  162 : {
+  163 : ofstream file("R0.txt");
+  164 : file << R0 << endl;
+  165 : }
+  166 : {
+  167 : ofstream file("U1.txt");
+  168 : file << U1 << endl;
+  169 : }
+  170 : // Re-calculate stream-lines
+  171 : // streamlines;
+  172 : // plot(psi, wait=1);
+  173 :  sizestack + 1024 =7656  ( 6632 )
+ 
+  --  mesh:  Nb of Triangles =   1048, Nb of Vertices 585
+  -- Solve :
+          min 0  max 0
+          min 0  max 0
+          min -0  max -0
+i = 0, t = 0
+  -- Solve :
+          min -1.54132e-30  max 0.0385333
+          min -0.0157947  max 0.0157945
+          min -32.0842  max 0.000536046
+i = 1, t = 0.0125
+  -- Solve :
+          min -4.61469e-30  max 0.153896
+          min -0.0626365  max 0.0626444
+          min -96.0914  max 0.00161684
+i = 2, t = 0.025
+  -- Solve :
+          min -7.66001e-30  max 0.345376
+          min -0.13912  max 0.139157
+          min -159.574  max 0.0027142
+i = 3, t = 0.0375
+  -- Solve :
+          min -1.06585e-29  max 0.611794
+          min -0.242927  max 0.243015
+          min -222.134  max 0.00382837
+i = 4, t = 0.05
+  -- Solve :
+          min -1.35919e-29  max 0.951506
+          min -0.370233  max 0.370385
+          min -283.38  max 0.004961
+i = 5, t = 0.0625
+  -- Solve :
+          min -1.64428e-29  max 1.36242
+          min -0.515032  max 0.515236
+          min -342.943  max 0.00610874
+i = 6, t = 0.075
+  -- Solve :
+          min -1.91947e-29  max 1.842
+          min -0.668387  max 0.668588
+          min -400.478  max 0.00725347
+i = 7, t = 0.0875
+  -- Solve :
+          min -2.18325e-29  max 2.38729
+          min -0.817827  max 0.818085
+          min -455.681  max 0.0083506
+i = 8, t = 0.1
+  -- Solve :
+          min -2.43371e-29  max 2.99493
+          min -0.946276  max 0.947115
+          min -508.161  max 0.00924257
+i = 9, t = 0.1125
+  -- Solve :
+          min -2.66908e-29  max 3.66117
+          min -1.04448  max 1.05469
+          min -557.592  max 0.0105846
+i = 10, t = 0.125
+  -- Solve :
+          min -2.8877e-29  max 4.3819
+          min -1.27583  max 1.28763
+          min -603.661  max 0.0118019
+i = 11, t = 0.1375
+  -- Solve :
+          min -3.08689e-29  max 5.15268
+          min -1.48233  max 1.4855
+          min -645.817  max 0.0125279
+i = 12, t = 0.15
+  -- Solve :
+          min -3.26533e-29  max 5.96877
+          min -1.62227  max 1.6393
+          min -683.797  max 0.0143219
+i = 13, t = 0.1625
+  -- Solve :
+          min -3.42311e-29  max 6.82512
+          min -1.78393  max 1.78685
+          min -717.576  max 0.0179923
+i = 14, t = 0.175
+  -- Solve :
+          min -3.55959e-29  max 7.71646
+          min -1.99185  max 1.9786
+          min -746.95  max 0.0236908
+i = 15, t = 0.1875
+  -- Solve :
+          min -3.67353e-29  max 8.63729
+          min -2.08002  max 2.05989
+          min -771.646  max 0.0364419
+i = 16, t = 0.2
+  -- Solve :
+          min -3.7644e-29  max 9.58193
+          min -2.25672  max 2.25646
+          min -791.486  max 0.0575857
+i = 17, t = 0.2125
+  -- Solve :
+          min -3.83126e-29  max 10.5446
+          min -2.33301  max 2.29129
+          min -806.29  max 0.0821815
+i = 18, t = 0.225
+  -- Solve :
+          min -3.87257e-29  max 11.5193
+          min -2.19633  max 2.2155
+          min -815.849  max 0.102203
+i = 19, t = 0.2375
+  -- Solve :
+          min -3.88829e-29  max 12.5
+          min -2.22112  max 2.24716
+          min -820.101  max 0.111811
+i = 20, t = 0.25
+  -- Solve :
+          min -3.87856e-29  max 13.4807
+          min -2.32245  max 2.25856
+          min -818.958  max 0.112827
+i = 21, t = 0.2625
+  -- Solve :
+          min -3.84371e-29  max 14.4554
+          min -2.17917  max 2.26842
+          min -812.546  max 0.113837
+i = 22, t = 0.275
+  -- Solve :
+          min -3.78406e-29  max 15.4181
+          min -2.14439  max 2.12674
+          min -800.998  max 0.114262
+i = 23, t = 0.2875
+  -- Solve :
+          min -3.70092e-29  max 16.3627
+          min -2.03563  max 2.11564
+          min -784.423  max 0.113963
+i = 24, t = 0.3
+  -- Solve :
+          min -3.59401e-29  max 17.2835
+          min -2.07334  max 2.08326
+          min -762.852  max 0.10739
+i = 25, t = 0.3125
+  -- Solve :
+          min -3.4638e-29  max 18.1749
+          min -1.9649  max 2.058
+          min -736.386  max 0.0913299
+i = 26, t = 0.325
+  -- Solve :
+          min -3.31191e-29  max 19.0312
+          min -1.85067  max 1.98307
+          min -705.344  max 0.0712465
+i = 27, t = 0.3375
+  -- Solve :
+          min -3.13883e-29  max 19.8473
+          min -1.8579  max 1.96704
+          min -669.813  max 0.0456101
+i = 28, t = 0.35
+  -- Solve :
+          min -2.94553e-29  max 20.6181
+          min -1.84048  max 1.88338
+          min -630.01  max 0.0185325
+i = 29, t = 0.3625
+  -- Solve :
+          min -2.73323e-29  max 21.3388
+          min -1.80863  max 1.86932
+          min -586.208  max 0.0727073
+i = 30, t = 0.375
+  -- Solve :
+          min -2.50384e-29  max 22.0051
+          min -1.83023  max 1.81105
+          min -538.752  max 0.150041
+i = 31, t = 0.3875
+  -- Solve :
+          min -2.25887e-29  max 22.6127
+          min -1.79255  max 1.72947
+          min -487.975  max 0.221759
+i = 32, t = 0.4
+  -- Solve :
+          min -1.99946e-29  max 23.158
+          min -1.80863  max 1.71194
+          min -434.118  max 0.277891
+i = 33, t = 0.4125
+  -- Solve :
+          min -1.72737e-29  max 23.6376
+          min -1.7473  max 1.64843
+          min -377.536  max 0.327352
+i = 34, t = 0.425
+  -- Solve :
+          min -1.44418e-29  max 24.0485
+          min -1.72603  max 1.59392
+          min -318.566  max 0.366455
+i = 35, t = 0.4375
+  -- Solve :
+          min -1.18208e-29  max 24.3882
+          min -1.71898  max 1.58447
+          min -257.624  max 0.396574
+i = 36, t = 0.45
+  -- Solve :
+          min -1.19966e-29  max 24.6546
+          min -1.71209  max 1.57056
+          min -195.115  max 0.411357
+i = 37, t = 0.4625
+  -- Solve :
+          min -1.21312e-29  max 24.8461
+          min -1.69829  max 1.55251
+          min -131.428  max 0.795696
+i = 38, t = 0.475
+  -- Solve :
+          min -1.22227e-29  max 24.9615
+          min -1.66576  max 1.51998
+          min -81.6308  max 2.21438
+i = 39, t = 0.4875
+  -- Solve :
+          min -1.22767e-29  max 25
+          min -1.62459  max 1.53764
+          min -34.2011  max 3.59179
+i = 40, t = 0.5
+  -- Solve :
+          min -1.22937e-29  max 24.9615
+          min -1.52678  max 1.51537
+          min -6.57195  max 65.0649
+i = 41, t = 0.5125
+  -- Solve :
+          min -1.22726e-29  max 24.8461
+          min -1.46244  max 1.52749
+          min -4.69588  max 127.697
+i = 42, t = 0.525
+  -- Solve :
+          min -1.22051e-29  max 24.6608
+          min -1.41905  max 1.48697
+          min -2.90564  max 191.36
+i = 43, t = 0.5375
+  -- Solve :
+          min -1.2081e-29  max 24.433
+          min -1.40461  max 1.46616
+          min -1.1546  max 253.865
+i = 44, t = 0.55
+  -- Solve :
+          min -1.19107e-29  max 24.1506
+          min -1.39341  max 1.45011
+          min -0.155443  max 314.745
+i = 45, t = 0.5625
+  -- Solve :
+          min -1.17102e-29  max 23.8213
+          min -1.32943  max 1.43188
+          min -0.159599  max 373.726
+i = 46, t = 0.575
+  -- Solve :
+          min -1.14774e-29  max 23.4538
+          min -1.31992  max 1.42416
+          min -0.150124  max 430.483
+i = 47, t = 0.5875
+  -- Solve :
+          min -1.12066e-29  max 23.0438
+          min -1.28153  max 1.38185
+          min -0.141834  max 484.598
+i = 48, t = 0.6
+  -- Solve :
+          min -1.09016e-29  max 22.5993
+          min -1.24317  max 1.36505
+          min -0.137233  max 535.778
+i = 49, t = 0.6125
+  -- Solve :
+          min -1.05764e-29  max 22.1092
+          min -1.23377  max 1.33696
+          min -0.131463  max 583.765
+i = 50, t = 0.625
+  -- Solve :
+          min -1.02144e-29  max 21.5845
+          min -1.21477  max 1.29309
+          min -0.125784  max 628.174
+i = 51, t = 0.6375
+  -- Solve :
+          min -9.82625e-30  max 21.0292
+          min -1.19219  max 1.27131
+          min -0.121479  max 668.844
+i = 52, t = 0.65
+  -- Solve :
+          min -0.283007  max 20.4305
+          min -1.18938  max 1.25189
+          min -0.118254  max 705.503
+i = 53, t = 0.6625
+  -- Solve :
+          min -0.813466  max 19.8164
+          min -1.18748  max 1.22664
+          min -0.118554  max 737.901
+i = 54, t = 0.675
+  -- Solve :
+          min -1.34122  max 19.175
+          min -1.17255  max 1.1907
+          min -0.120179  max 765.895
+i = 55, t = 0.6875
+  -- Solve :
+          min -1.85516  max 18.5179
+          min -1.1612  max 1.15534
+          min -0.12229  max 789.237
+i = 56, t = 0.7
+  -- Solve :
+          min -2.32671  max 17.8386
+          min -1.15263  max 1.13523
+          min -0.121849  max 807.925
+i = 57, t = 0.7125
+  -- Solve :
+          min -2.7427  max 17.1397
+          min -1.23031  max 1.23096
+          min -0.122096  max 821.922
+i = 58, t = 0.725
+  -- Solve :
+          min -3.29842  max 16.4422
+          min -1.32763  max 1.33356
+          min -0.123285  max 831.073
+i = 59, t = 0.7375
+  -- Solve :
+          min -4.11107  max 15.735
+          min -1.42865  max 1.43777
+          min -0.125765  max 835.233
+i = 60, t = 0.75
+  -- Solve :
+          min -4.85717  max 15.0231
+          min -1.52868  max 1.53907
+          min -0.130331  max 834.409
+i = 61, t = 0.7625
+  -- Solve :
+          min -5.50993  max 14.3188
+          min -1.62826  max 1.63854
+          min -0.13424  max 828.671
+i = 62, t = 0.775
+  -- Solve :
+          min -6.05529  max 13.6201
+          min -1.73255  max 1.74128
+          min -0.137344  max 817.979
+i = 63, t = 0.7875
+  -- Solve :
+          min -6.50585  max 12.9342
+          min -1.84246  max 1.8488
+          min -0.139296  max 802.458
+i = 64, t = 0.8
+  -- Solve :
+          min -6.91331  max 12.2647
+          min -1.95876  max 1.96653
+          min -0.139112  max 782.204
+i = 65, t = 0.8125
+  -- Solve :
+          min -7.41648  max 11.6157
+          min -2.08144  max 2.09407
+          min -0.136524  max 757.245
+i = 66, t = 0.825
+  -- Solve :
+          min -8.01796  max 10.9908
+          min -2.21339  max 2.23215
+          min -0.130264  max 727.88
+i = 67, t = 0.8375
+  -- Solve :
+          min -8.50962  max 10.393
+          min -2.35462  max 2.38139
+          min -0.121295  max 694.255
+i = 68, t = 0.85
+  -- Solve :
+          min -8.948  max 9.82426
+          min -2.5036  max 2.53368
+          min -0.10949  max 656.513
+i = 69, t = 0.8625
+  -- Solve :
+          min -9.35566  max 9.28924
+          min -2.6601  max 2.6841
+          min -0.0962805  max 614.968
+i = 70, t = 0.875
+  -- Solve :
+          min -9.68208  max 8.79205
+          min -2.82424  max 2.8289
+          min -0.0837081  max 569.84
+i = 71, t = 0.8875
+  -- Solve :
+          min -9.97208  max 8.33562
+          min -2.99351  max 3.00069
+          min -0.0798154  max 521.25
+i = 72, t = 0.9
+  -- Solve :
+          min -10.228  max 7.9231
+          min -3.172  max 3.1848
+          min -0.0747684  max 469.44
+i = 73, t = 0.9125
+  -- Solve :
+          min -10.4521  max 7.55594
+          min -3.34864  max 3.36148
+          min -0.0689872  max 414.729
+i = 74, t = 0.925
+  -- Solve :
+          min -10.6226  max 7.23587
+          min -3.5225  max 3.52812
+          min -0.0625775  max 357.331
+i = 75, t = 0.9375
+  -- Solve :
+          min -10.7404  max 6.96445
+          min -3.75511  max 3.74871
+          min -0.0560456  max 297.746
+i = 76, t = 0.95
+  -- Solve :
+          min -10.7959  max 6.74296
+          min -4.14386  max 4.14555
+          min -0.0509601  max 239.992
+i = 77, t = 0.9625
+  -- Solve :
+          min -10.8058  max 6.57231
+          min -4.48613  max 4.49338
+          min -0.0449115  max 183.877
+i = 78, t = 0.975
+  -- Solve :
+          min -10.7555  max 6.4532
+          min -4.7513  max 4.74692
+          min -0.0401868  max 126.707
+i = 79, t = 0.9875
+  -- Solve :
+          min -10.6443  max 6.38603
+          min -4.91714  max 4.87502
+          min -0.243368  max 68.8112
+i = 80, t = 1
+Remessing...
+  --  mesh:  Nb of Triangles =   1040, Nb of Vertices 581
+  number of required edges : 0
+  -- Solve :
+          min -10.5154  max 6.37165
+          min -4.97248  max 4.85951
+          min -30.9233  max 13.1231
+i = 0, t = 1.0125
+  -- Solve :
+          min -10.2911  max 6.40717
+          min -4.9127  max 4.70767
+          min -91.3453  max 0.0654578
+i = 1, t = 1.025
+  -- Solve :
+          min -10.0663  max 6.50192
+          min -4.74242  max 4.46572
+          min -152.576  max 0.0636726
+i = 2, t = 1.0375
+  -- Solve :
+          min -9.84481  max 6.65434
+          min -4.48854  max 4.22013
+          min -212.734  max 0.0631221
+i = 3, t = 1.05
+  -- Solve :
+          min -9.53096  max 6.85475
+          min -4.37035  max 4.33973
+          min -274.234  max 0.0633661
+i = 4, t = 1.0625
+  -- Solve :
+          min -9.16336  max 7.09988
+          min -4.42831  max 4.37359
+          min -334.05  max 0.0640617
+i = 5, t = 1.075
+  -- Solve :
+          min -8.74352  max 7.38832
+          min -4.42534  max 4.34147
+          min -391.733  max 0.0648832
+i = 6, t = 1.0875
+  -- Solve :
+          min -8.27172  max 7.71983
+          min -4.35806  max 4.24706
+          min -446.964  max 0.0652667
+i = 7, t = 1.1
+  -- Solve :
+          min -7.74521  max 8.09354
+          min -4.20352  max 4.07299
+          min -499.154  max 0.0693941
+i = 8, t = 1.1125
+  -- Solve :
+          min -7.17422  max 8.50661
+          min -3.93347  max 3.97971
+          min -548.047  max 0.0662529
+i = 9, t = 1.125
+  -- Solve :
+          min -6.57586  max 8.989
+          min -3.8264  max 3.86968
+          min -593.307  max 0.0545021
+i = 10, t = 1.1375
+  -- Solve :
+          min -5.92548  max 9.77781
+          min -3.66551  max 3.72547
+          min -635.369  max 0.0347991
+i = 11, t = 1.15
+  -- Solve :
+          min -5.24923  max 10.5217
+          min -3.71496  max 3.55848
+          min -674.22  max 0.0272069
+i = 12, t = 1.1625
+  -- Solve :
+          min -4.55788  max 11.1852
+          min -3.7894  max 3.66066
+          min -709.087  max 0.0223451
+i = 13, t = 1.175
+  -- Solve :
+          min -3.72178  max 11.731
+          min -3.79039  max 3.76066
+          min -739.769  max 0.0123468
+i = 14, t = 1.1875
+  -- Solve :
+          min -3.25381  max 12.3013
+          min -4.24964  max 3.70114
+          min -766.142  max 0.0144181
+i = 15, t = 1.2
+  -- Solve :
+          min -2.79437  max 13.0575
+          min -4.54542  max 3.41603
+          min -787.599  max 0.0243285
+i = 16, t = 1.2125
+  -- Solve :
+          min -1.56462  max 13.9895
+          min -4.61052  max 3.88326
+          min -803.824  max 0.0252276
+i = 17, t = 1.225
+  -- Solve :
+          min -0.904498  max 14.7201
+          min -5.06418  max 4.3633
+          min -814.924  max 0.0156556
+i = 18, t = 1.2375
+  -- Solve :
+          min -0.234783  max 15.4863
+          min -5.20863  max 4.41021
+          min -819.805  max 0.046293
+i = 19, t = 1.25
+  -- Solve :
+          min -3.87929e-29  max 16.2073
+          min -4.6634  max 4.48
+          min -818.477  max 0.0849126
+i = 20, t = 1.2625
+  -- Solve :
+          min -3.84467e-29  max 16.8214
+          min -4.89244  max 4.61461
+          min -813.202  max 0.109395
+i = 21, t = 1.275
+  -- Solve :
+          min -3.78736e-29  max 17.5102
+          min -4.69425  max 4.71355
+          min -802.609  max 0.11896
+i = 22, t = 1.2875
+  -- Solve :
+          min -3.70262e-29  max 18.2159
+          min -4.75351  max 4.80274
+          min -785.666  max 0.125638
+i = 23, t = 1.3
+  -- Solve :
+          min -3.59187e-29  max 18.8283
+          min -4.77764  max 4.08549
+          min -763.511  max 0.127742
+i = 24, t = 1.3125
+  -- Solve :
+          min -3.45771e-29  max 19.4626
+          min -5.00364  max 4.02909
+          min -736.31  max 0.113788
+i = 25, t = 1.325
+  -- Solve :
+          min -3.31066e-29  max 20.0545
+          min -4.77155  max 4.10853
+          min -706.045  max 0.0945834
+i = 26, t = 1.3375
+  -- Solve :
+          min -3.13871e-29  max 20.6339
+          min -4.74549  max 4.30182
+          min -670.413  max 0.0802765
+i = 27, t = 1.35
+  -- Solve :
+          min -2.94694e-29  max 21.1492
+          min -4.8998  max 4.05817
+          min -630.63  max 0.0643668
+i = 28, t = 1.3625
+  -- Solve :
+          min -2.7317e-29  max 21.6444
+          min -4.63383  max 4.09713
+          min -585.818  max 0.041496
+i = 29, t = 1.375
+  -- Solve :
+          min -2.50258e-29  max 22.0831
+          min -4.74046  max 4.22568
+          min -538.357  max 0.0201584
+i = 30, t = 1.3875
+  -- Solve :
+          min -2.25757e-29  max 22.6127
+          min -4.52815  max 3.88907
+          min -487.527  max 0.0267761
+i = 31, t = 1.4
+  -- Solve :
+          min -1.99952e-29  max 23.158
+          min -4.27928  max 4.07213
+          min -433.733  max 0.0795642
+i = 32, t = 1.4125
+  -- Solve :
+          min -1.73077e-29  max 23.6376
+          min -4.24345  max 3.70229
+          min -377.782  max 0.134774
+i = 33, t = 1.425
+  -- Solve :
+          min -1.4448e-29  max 24.0485
+          min -4.00957  max 3.89024
+          min -318.279  max 0.191286
+i = 34, t = 1.4375
+  -- Solve :
+          min -1.15348e-29  max 24.3882
+          min -4.13291  max 3.64494
+          min -257.566  max 0.235287
+i = 35, t = 1.45
+  -- Solve :
+          min -1.06451e-29  max 24.6546
+          min -3.96913  max 3.70699
+          min -195.401  max 0.270387
+i = 36, t = 1.4625
+  -- Solve :
+          min -1.07721e-29  max 24.8461
+          min -4.10424  max 3.50037
+          min -139.159  max 0.295704
+i = 37, t = 1.475
+  -- Solve :
+          min -1.08662e-29  max 24.9615
+          min -4.11848  max 3.49712
+          min -84.0373  max 0.60073
+i = 38, t = 1.4875
+  -- Solve :
+          min -1.09258e-29  max 25
+          min -3.81975  max 3.61578
+          min -36.1815  max 13.2605
+i = 39, t = 1.5
+  -- Solve :
+          min -1.09458e-29  max 25.0997
+          min -3.8393  max 3.73085
+          min -6.09421  max 66.1072
+i = 40, t = 1.5125
+  -- Solve :
+          min -1.09188e-29  max 24.9366
+          min -3.97698  max 3.50595
+          min -4.26626  max 128.664
+i = 41, t = 1.525
+  -- Solve :
+          min -1.08424e-29  max 24.9435
+          min -3.92617  max 3.31761
+          min -2.47135  max 193.007
+i = 42, t = 1.5375
+  -- Solve :
+          min -1.07109e-29  max 24.727
+          min -3.85261  max 3.25487
+          min -0.588139  max 255.549
+i = 43, t = 1.55
+  -- Solve :
+          min -1.05228e-29  max 24.6124
+          min -3.8266  max 3.22374
+          min -0.123749  max 316.184
+i = 44, t = 1.5625
+  -- Solve :
+          min -1.02742e-29  max 24.3376
+          min -3.90401  max 3.13737
+          min -0.120204  max 375.266
+i = 45, t = 1.575
+  -- Solve :
+          min -9.95098e-30  max 24.0099
+          min -3.68516  max 3.14848
+          min -0.112955  max 431.977
+i = 46, t = 1.5875
+  -- Solve :
+          min -9.57183e-30  max 23.7307
+          min -3.59319  max 3.03551
+          min -0.107372  max 486.681
+i = 47, t = 1.6
+  -- Solve :
+          min -9.14658e-30  max 23.2444
+          min -3.57534  max 3.03741
+          min -0.0991608  max 537.55
+i = 48, t = 1.6125
+  -- Solve :
+          min -8.68017e-30  max 22.7399
+          min -3.48516  max 2.91342
+          min -0.094467  max 585.132
+i = 49, t = 1.625
+  -- Solve :
+          min -8.18698e-30  max 22.2787
+          min -3.32508  max 2.88543
+          min -0.0910886  max 629.399
+i = 50, t = 1.6375
+  -- Solve :
+          min -7.68685e-30  max 21.7679
+          min -3.31594  max 3.01683
+          min -0.088852  max 669.84
+i = 51, t = 1.65
+  -- Solve :
+          min -0.29948  max 21.1955
+          min -3.10886  max 3.032
+          min -0.0889218  max 705.622
+i = 52, t = 1.6625
+  -- Solve :
+          min -0.830979  max 20.5067
+          min -3.18615  max 3.13412
+          min -0.088848  max 737.973
+i = 53, t = 1.675
+  -- Solve :
+          min -1.36218  max 19.9156
+          min -3.1515  max 3.04208
+          min -0.0919464  max 765.125
+i = 54, t = 1.6875
+  -- Solve :
+          min -1.88108  max 19.2697
+          min -3.02831  max 2.94242
+          min -0.0971151  max 788.053
+i = 55, t = 1.7
+  -- Solve :
+          min -2.35381  max 18.5293
+          min -3.0959  max 2.74349
+          min -0.102234  max 806.271
+i = 56, t = 1.7125
+  -- Solve :
+          min -2.97934  max 17.8073
+          min -3.1397  max 2.74124
+          min -0.104933  max 819.988
+i = 57, t = 1.725
+  -- Solve :
+          min -3.74246  max 17.1005
+          min -3.20168  max 2.66323
+          min -0.106558  max 828.441
+i = 58, t = 1.7375
+  -- Solve :
+          min -4.45037  max 16.3576
+          min -3.022  max 2.66704
+          min -0.1066  max 832.565
+i = 59, t = 1.75
+  -- Solve :
+          min -5.07244  max 15.6047
+          min -2.96952  max 2.64189
+          min -0.106072  max 831.463
+i = 60, t = 1.7625
+  -- Solve :
+          min -5.59064  max 14.8716
+          min -2.77016  max 2.55284
+          min -0.102232  max 825.519
+i = 61, t = 1.775
+  -- Solve :
+          min -6.02008  max 14.1146
+          min -2.73047  max 2.50982
+          min -0.0956395  max 814.643
+i = 62, t = 1.7875
+  -- Solve :
+          min -6.45388  max 13.3649
+          min -2.79086  max 2.50235
+          min -0.0861402  max 798.898
+i = 63, t = 1.8
+  -- Solve :
+          min -6.91864  max 12.6537
+          min -2.76535  max 2.55576
+          min -0.0743527  max 778.473
+i = 64, t = 1.8125
+  -- Solve :
+          min -7.44245  max 11.9625
+          min -2.71069  max 2.5743
+          min -0.071499  max 753.448
+i = 65, t = 1.825
+  -- Solve :
+          min -8.05005  max 11.3093
+          min -2.68031  max 2.52159
+          min -0.0707041  max 723.767
+i = 66, t = 1.8375
+  -- Solve :
+          min -8.57405  max 10.6834
+          min -2.70926  max 2.49656
+          min -0.0684819  max 689.837
+i = 67, t = 1.85
+  -- Solve :
+          min -9.09039  max 10.0897
+          min -2.63353  max 2.69609
+          min -0.0666412  max 651.83
+i = 68, t = 1.8625
+  -- Solve :
+          min -9.48199  max 9.55442
+          min -2.65903  max 2.89657
+          min -0.0674028  max 610.008
+i = 69, t = 1.875
+  -- Solve :
+          min -9.7879  max 9.06077
+          min -2.82182  max 3.08981
+          min -0.0685269  max 564.531
+i = 70, t = 1.8875
+  -- Solve :
+          min -10.0606  max 8.62282
+          min -2.98982  max 3.26285
+          min -0.0683233  max 515.533
+i = 71, t = 1.9
+  -- Solve :
+          min -10.3268  max 8.2435
+          min -3.16548  max 3.4006
+          min -0.0603522  max 463.414
+i = 72, t = 1.9125
+  -- Solve :
+          min -10.5791  max 7.90495
+          min -3.34072  max 3.49224
+          min -0.0548938  max 408.534
+i = 73, t = 1.925
+  -- Solve :
+          min -10.7834  max 7.61152
+          min -3.51372  max 3.57563
+          min -0.0609692  max 351.212
+i = 74, t = 1.9375
+  -- Solve :
+          min -10.9143  max 7.36559
+          min -3.74627  max 3.80263
+          min -0.0702206  max 291.732
+i = 75, t = 1.95
+  -- Solve :
+          min -10.9576  max 7.16527
+          min -4.13475  max 3.98357
+          min -0.0805156  max 234.88
+i = 76, t = 1.9625
+  -- Solve :
+          min -11.0131  max 7.01935
+          min -4.47831  max 4.09658
+          min -0.0924252  max 178.979
+i = 77, t = 1.975
+  -- Solve :
+          min -11.0212  max 6.92354
+          min -4.74634  max 4.52625
+          min -0.106361  max 121.709
+i = 78, t = 1.9875
+  -- Solve :
+          min -10.9366  max 6.87711
+          min -4.9153  max 4.99823
+          min -1.32508  max 63.3656
+i = 79, t = 2
+times: compile 0.398s, execution 42.872s,  mpirank:0
+ ######## We forget of deleting   -157 Nb pointer,   0Bytes  ,  mpirank 0, memory leak =0
+ CodeAlloc : nb ptr  4523,  size :516360 mpirank: 0
+Ok: Normal End
+ try getConsole C:\Users\林平老师\Documents\GitHub\TMNS\src\init.edp
