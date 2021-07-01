@@ -1,7 +1,15 @@
 // Parameters
 real nu = 1./100.;
-real dt = 0.0125;
+real dt = 0.05;
 real t = 0;
+real nt = 1/dt;
+real U0=0;
+real G=1;
+real J=0.04;
+real Q=30;
+real Z=1;
+real K=1;
+
 // Initial rectangle mesh
 real a= 1.5, b= 5, c=15;
 border L1(t=0,1) { x=-b; y=a-3*t; }
@@ -10,7 +18,7 @@ border L3(t=0,1) { x=c-5; y=3*t-a; }
 border L4(t=0,1) { x=2*b-c*t; y=a; }
 int n = 5;
 mesh Th1 = buildmesh(L1(2*n)+L2(10*n)+L3(2*n)+L4(10*n)); 
-plot(Th1,ps="./multiscale.eps",bw=1);
+plot(Th1,ps="./plots/initialMesh.eps",bw=1);
 
 // Fespace
 fespace Xh1(Th1, P2);
@@ -23,6 +31,17 @@ fespace Mh1(Th1, P1);
 Mh1 p, q;
 real alpha = 1/dt;
 real epsr=1e-8;
+
+func real Reaction(real U0)
+	{
+		real Z1=int1d(Th1)(2*dx(u1)*N.x*(1-N.x*N.x)-(dx(u2)+dy(u1))*N.x*N.x*N.y+N.y*(1-N.x*N.x)*(dy(u1)+dx(u2))-2*dy(u2)*N.x*N.y*N.y);
+		real Z2=int1d(Th1)((dx(u2)+dy(u1))*(1-N.y*N.y)*N.x-2*dx(u1)*N.x*N.x*N.y+2*dy(u2)*(1-N.y*N.y)*N.y-N.x*N.y*N.y*(dy(u1)+dx(u2)));
+		real M1=Z1*J*Q*G;
+		real M2=Z2*J*Q*G;
+
+		real R0=1/(1+U0)*1/(1+M1*M1+M2*M2);
+}
+
 problem NS ([u1, u2, p], [v1, v2, q])
 	= int2d(Th1)(
 		  alpha*(u1*v1 + u2*v2)
@@ -45,7 +64,9 @@ problem NS ([u1, u2, p], [v1, v2, q])
 	+ on(L1, u1=25*(pow(sin(pi*t),2))*(1-pow(y/1.5,2)), u2=0);
 
 // real t = 0;
-for (int i = 0; i <= 80; i++) {
+real uk = U0;
+real ua = 0;
+for (int i = 0; i <= nt; i++) {
 	// Update
 	up1 = u1;
 	up2 = u2;
@@ -54,30 +75,49 @@ for (int i = 0; i <= 80; i++) {
 	NS;
 
 	// Plot
-	// if (!(i % 3))
-	plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
+	if (!(i % 5))
+		plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
 	cout << "i = " << i << ", t = "<<t<< endl;
+	real r=Reaction(uk);
+	uk=uk+K*Z*r;
+	ua+=uk;
+
 	t = t+dt;
+	{
+		ofstream file("./data/uk.txt", append);
+		file << uk << endl;
+	}	
 	// cout<<"t="<<t<<endl;
 	//cout << u1.n;
 }
-real G=1;
-real J=0.04;
-real Q=30;
-real Z1=int1d(Th1)(2*dx(u1)*N.x*(1-N.x*N.x)-(dx(u2)+dy(u1))*N.x*N.x*N.y+N.y*(1-N.x*N.x)*(dy(u1)+dx(u2))-2*dy(u2)*N.x*N.y*N.y);
-real Z2=int1d(Th1)((dx(u2)+dy(u1))*(1-N.y*N.y)*N.x-2*dx(u1)*N.x*N.x*N.y+2*dy(u2)*(1-N.y*N.y)*N.y-N.x*N.y*N.y*(dy(u1)+dx(u2)));
-real M1=Z1*J*Q*G;
-real M2=Z2*J*Q*G;
+ua = dt*ua;
+{
+ofstream file("./data/ua.txt", append);
+file << ua << endl;
+}
+// real G=1;
+// real J=0.04;
+// real Q=30;
+
+// func real concentration(real U0, real K, real Z)
+// 	{
+// 		real U=U0+K*Z*R0;
+// 		return R0, U;
+// 	}
+
 // cout << "Z 1= " << Z1<< endl;
 // cout << "Z 2= " << Z2<< endl;
 // cout << "M1= " << M1<< endl;
 // cout << "M2= " << M2<< endl;
-real U0=0;
-real R0=1/(1+U0)*1/(1+M1*M1+M2*M2);
+// real U0=0;
+// real R0=1/(1+U0)*1/(1+M1*M1+M2*M2);
 //real Z=5/(10^5);
-real Z=1;
-real K=1;
+// real Z=1;
+// real K=1;
+real R0=Reaction(U0);
 real U1=U0+K*Z*R0;
+cout<<"func U="<<U1<<endl;
+// real U1=U0+K*Z*R0;
 // cout<<"U1="<<U1<<endl;
 // Rmess
 cout<<"Remessing..."<<endl;
@@ -134,7 +174,7 @@ problem NS1 ([u11, u12, p1], [v11, v12, q1])
 
 
 // real t = 0;
-for (int i = 0; i <= 79; i++) {
+for (int i = 0; i < nt; i++) {
 	// Update
 	up11 = u11;
 	up12 = u12;
