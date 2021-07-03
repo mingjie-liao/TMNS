@@ -1,11 +1,13 @@
 // Parameters
-real nu=1./100.;
-real dt=0.05;
-real t=0;
+real nu = 1./100.;
+real dt = 0.05;
+real t = 0;
+real nt = 1/dt;
+real U0=0;
 real G=1;
 real J=0.04;
 real Q=30;
-real nt=1/dt;
+
 // Initial rectangle mesh
 real a= 1.5, b= 5, c=15;
 border L1(t=0,1) { x=-b; y=a-3*t; }
@@ -14,7 +16,7 @@ border L3(t=0,1) { x=c-5; y=3*t-a; }
 border L4(t=0,1) { x=2*b-c*t; y=a; }
 int n = 5;
 mesh Th1 = buildmesh(L1(2*n)+L2(10*n)+L3(2*n)+L4(10*n)); 
-plot(Th1,ps="./plots/multiscale.eps",bw=1);
+plot(Th1,ps="./plots/initialMesh.eps",bw=1);
 
 // Fespace
 fespace Xh1(Th1, P2);
@@ -27,6 +29,7 @@ fespace Mh1(Th1, P1);
 Mh1 p, q;
 real alpha = 1/dt;
 real epsr=1e-8;
+
 problem NS ([u1, u2, p], [v1, v2, q])
 	= int2d(Th1)(
 		  alpha*(u1*v1 + u2*v2)
@@ -86,6 +89,7 @@ for (int i = 1; i <= nt; i++) {
 	if (!(i % 5))
 		plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
 	cout << "i = " << i << ", t = "<<t<< endl;
+
 	t = t+dt;
 }
 Ua=dt*Ua;
@@ -141,8 +145,7 @@ problem NS1 ([u11, u12, p1], [v11, v12, q1])
 
 
 // real t = 0;
-Ua = U1;
-for (int i = 0; i <= nt-1; i++) {
+for (int i = 0; i < nt; i++) {
 	// Update
 	up11 = u11;
 	up12 = u12;
@@ -153,8 +156,8 @@ for (int i = 0; i <= nt-1; i++) {
 	real Z2=int1d(Th2)((dx(u12)+dy(u11))*(1-N.y*N.y)*N.x-2*dx(u11)*N.x*N.x*N.y+2*dy(u12)*(1-N.y*N.y)*N.y-N.x*N.y*N.y*(dy(u11)+dx(u12)));
 	real M1=Z1*J*Q*G;
 	real M2=Z2*J*Q*G;
-	cout<<"M1 = "<<M1<<endl;
-	cout<<"M2 = "<<M2<<endl;
+	// cout<<"M1 = "<<M1<<endl;
+	// cout<<"M2 = "<<M2<<endl;
 	R0=1/(1+U1)/(1+M1*M1+M2*M2);
 	cout<<"R0 = "<<R0<<endl;
 	U1=U1+K*Z*R0;
