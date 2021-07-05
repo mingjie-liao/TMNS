@@ -1,8 +1,12 @@
 // Parameters
-mesh Th1 = readmesh("toto.msh");
+mesh Th1 = readmesh("./data/toto.msh");
 real nu = 1./100.;
-real dt = 0.1;
+real dt = 0.05;
 real t = 0;
+real nt = 1/dt;
+real G=1;
+real J=0.04;
+real Q=30;
 real R0=0;
 real U1=0;
 fespace Xh1(Th1, P2);
@@ -16,36 +20,30 @@ Mh1 p, q;
 real alpha = 1/dt;
 real epsr=1e-8;
 {
-ifstream file("u11.txt");
+ifstream file("./data/u11.txt");
 file >> u1[] ;
 }
 {
-ifstream file("u12.txt");
+ifstream file("./data/u12.txt");
 file >> u2[] ;
 }
 {
-ifstream file("p1.txt");
+ifstream file("./data/p1.txt");
 file >> p[] ;
 }
 {
-ifstream file("R0.txt");
+ifstream file("./data/R0.txt");
 file >> R0 ;
 }
 {
-ifstream file("U1.txt");
+ifstream file("./data/U1.txt");
 file >> U1 ;
 }
-real G=1;
-real J=0.04;
-real Q=30;
+
 real Z1=int1d(Th1)(2*dx(u1)*N.x*(1-N.x*N.x)-(dx(u2)+dy(u1))*N.x*N.x*N.y+N.y*(1-N.x*N.x)*(dy(u1)+dx(u2))-2*dy(u2)*N.x*N.y*N.y);
 real Z2=int1d(Th1)((dx(u2)+dy(u1))*(1-N.y*N.y)*N.x-2*dx(u1)*N.x*N.x*N.y+2*dy(u2)*(1-N.y*N.y)*N.y-N.x*N.y*N.y*(dy(u1)+dx(u2)));
 real M1=Z1*J*Q*G;
 real M2=Z2*J*Q*G;
-cout << "Z 1= " << Z1<< endl;
-cout << "Z 2= " << Z2<< endl;
-cout << "M1= " << M1<< endl;
-cout << "M2= " << M2<< endl;
 real R1=1/(1+U1)*1/(1+M1*M1+M2*M2);
 //real Z=5/(10^5);
 real Z=1;
@@ -105,41 +103,63 @@ problem NS ([u11, u12, p1], [v11, v12, q1])
 	+ on(L2, L4, u11=0, u12=0)
 	+ on(L1, u11=25*(pow(sin(pi*t),2))*(1-pow(y/1.5,2)), u12=0);
 
+up1 = u1;
+up2 = u2;
+fx = 0;
+NS;
+t+=dt;
+real Ua=U2;
 
 // real t = 0;
-for (int i = 0; i <= 10; i++) {
+for (int i = 0; i < nt; i++) {
 	// Update
 	up11 = u11;
 	up12 = u12;
 	// Solve
 	fx = 0;
 	NS;
-	t = t+dt;
+	real Z1=int1d(Th2)(2*dx(u11)*N.x*(1-N.x*N.x)-(dx(u12)+dy(u11))*N.x*N.x*N.y+N.y*(1-N.x*N.x)*(dy(u11)+dx(u12))-2*dy(u12)*N.x*N.y*N.y);
+	real Z2=int1d(Th2)((dx(u12)+dy(u11))*(1-N.y*N.y)*N.x-2*dx(u11)*N.x*N.x*N.y+2*dy(u12)*(1-N.y*N.y)*N.y-N.x*N.y*N.y*(dy(u11)+dx(u12)));
+	real M1=Z1*J*Q*G;
+	real M2=Z2*J*Q*G;
+	R0=1/(1+U2)/(1+M1*M1+M2*M2);
+	cout<<"R0 = "<<R0<<endl;
+	U2=U2+K*Z*R0;
+	cout<<"U = "<<U2<<endl;
+	{
+        ofstream file("./data/uk.txt", append);
+        file << U2 << endl;
+    }
+	Ua+=U2;
 	// Plot
-	// if (!(i % 3))
-	plot(coef=0.2, cmm="[u11, u12] and p1", p1, [u11, u12], wait=false);
+	if (!(i % 5))
+		plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
+	cout << "i = " << i << ", t = "<<t<< endl;
+	t = t+dt;
+}
+Ua=dt*Ua;
+{
+ofstream file("./data/ua.txt", append);
+file << Ua << endl;
 }
 {
-ofstream file("u11.txt");
+ofstream file("./data/u11.txt");
 file << u11[] << endl;
 }
 {
-ofstream file("u12.txt");
+ofstream file("./data/u12.txt");
 file << u12[] << endl;
 }
 {
-ofstream file("p1.txt");
+ofstream file("./data/p1.txt");
 file << p1[] << endl;
 }
 {
-ofstream file("R0.txt");
+ofstream file("./data/R0.txt");
 file << R1 << endl;
 }
 {
-ofstream file("U1.txt");
+ofstream file("./data/U1.txt");
 file << U2 << endl;
 }
 cout<<"U="<<U2<<endl;
-// Re-calculate stream-lines
-// streamlines;
-// plot(psi, wait=1);
