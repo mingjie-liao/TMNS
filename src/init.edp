@@ -63,6 +63,11 @@ fx = 0;
 NS;
 t+=dt;
 
+{
+	ofstream file("./data/uk.txt");
+	file << U1 << endl;
+}
+
 for (int i = 1; i <= nt; i++) {
 	// Update
 	up1 = u1;
@@ -94,7 +99,7 @@ for (int i = 1; i <= nt; i++) {
 }
 Ua=dt*Ua;
 {
-ofstream file("./data/ua.txt", append);
+ofstream file("./data/ua.txt");
 file << Ua << endl;
 }
 
