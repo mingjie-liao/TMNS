@@ -1,8 +1,10 @@
+include "getARGV.idp"
 // Parameters
 mesh Th1 = readmesh("toto.msh");
 real nu = 1./100.;
 real dt = 0.05;
-real t = 0;
+// real t = 0;
+real t = getARGV(2, 0);
 real nt = 1/dt;
 real G=1;
 real J=0.04;
@@ -132,8 +134,8 @@ for (int i = 0; i < nt; i++) {
     }
 	Ua+=U2;
 	// Plot
-	if (!(i % 4))
-		plot(coef=0.2, cmm="[u11, u12] and p", p, [u11, u12], wait=false);
+	if (!(t % 250) //&& (i==(nt-1)))
+		plot(coef=0.2, cmm="[u11, u12] and p", p, [u11, u12], ps="velocity_t"+t+".eps");
 	cout << "i = " << i << ", t = "<<t<< endl;
 	t = t+dt;
 }

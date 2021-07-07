@@ -1,7 +1,9 @@
-# *gitignore
+*.gitignore
 *.DS_Store
 *.png
 *plots/
 *.eps
 *.msh
 *.txt
+
+test.*
