@@ -16,7 +16,8 @@ border L3(t=0,1) { x=c-5; y=3*t-a; }
 border L4(t=0,1) { x=2*b-c*t; y=a; }
 int n = 5;
 mesh Th1 = buildmesh(L1(2*n)+L2(10*n)+L3(2*n)+L4(10*n)); 
-plot(Th1,ps="./plots/initialMesh.eps",bw=1);
+// plot(Th1,ps="./plots/initialMesh.eps",bw=1);
+plot(Th1,ps="initialMesh.eps",bw=1);
 
 // Fespace
 fespace Xh1(Th1, P2);
@@ -64,7 +65,8 @@ NS;
 t+=dt;
 
 {
-	ofstream file("./data/uk.txt");
+	// ofstream file("./data/uk.txt");
+	ofstream file("uk.txt");
 	file << U1 << endl;
 }
 
@@ -86,7 +88,8 @@ for (int i = 1; i <= nt; i++) {
 	U1=U1+K*Z*R0;
 	// cout<<"U = "<<U1<<endl;
 	{
-        ofstream file("./data/uk.txt", append);
+        // ofstream file("./data/uk.txt", append);
+		ofstream file("uk.txt", append);
         file << U1 << endl;
     }
 	Ua+=U1;
@@ -99,8 +102,9 @@ for (int i = 1; i <= nt; i++) {
 }
 Ua=dt*Ua;
 {
-ofstream file("./data/ua.txt");
-file << Ua << endl;
+// ofstream file("./data/ua.txt");
+	ofstream file("ua.txt");
+	file << Ua << endl;
 }
 
 // Rmess
@@ -111,8 +115,10 @@ border L6(t=0,1) { x=-b+c*t; y=d*exp(-pow(x,2))-a; }
 border L7(t=0,1) { x=c-5; y=3*t-a; }
 border L8(t=0,1) { x=2*b-c*t; y=a-d*exp(-pow(x,2)); }
 mesh Th2 = buildmesh(L5(2*n)+L6(10*n)+L7(2*n)+L8(10*n)); 
-plot(Th2,ps="./plots/multiscale1.eps",bw=1,wait=false);
-savemesh(Th2,"./data/toto.msh");
+// plot(Th2,ps="./plots/multiscale1.eps",bw=1,wait=false);
+plot(Th2,ps="multiscale1.eps",bw=1,wait=false);
+// savemesh(Th2,"./data/toto.msh");
+savemesh(Th2,"toto.msh");
 // Fespace
 fespace Xh2(Th2, P2);
 Xh2 u11, v11;
@@ -168,38 +174,45 @@ for (int i = 0; i < nt; i++) {
 	U1=U1+K*Z*R0;
 	cout<<"U = "<<U1<<endl;
 	{
-        ofstream file("./data/uk.txt", append);
+        // ofstream file("./data/uk.txt", append);
+		ofstream file("uk.txt", append);
         file << U1 << endl;
     }
 	Ua+=U1;
 	// Plot
-	if (!(i % 5))
-		plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
+	if (!(i % 4))
+		plot(coef=0.2, cmm="[u11, u12] and p", p, [u11, u12], wait=false);
 	cout << "i = " << i << ", t = "<<t<< endl;
 	t = t+dt;
 }
 Ua=dt*Ua;
 {
-ofstream file("./data/ua.txt", append);
-file << Ua << endl;
+	// ofstream file("./data/ua.txt", append);
+	ofstream file("ua.txt", append);
+	file << Ua << endl;
 }
 {
-ofstream file("./data/u11.txt");
-file << u11[] << endl;
+	// ofstream file("./data/u11.txt");
+	ofstream file("u11.txt");
+	file << u11[] << endl;
 }
 {
-ofstream file("./data/u12.txt");
-file << u12[] << endl;
+	// ofstream file("./data/u12.txt");
+	ofstream file("u12.txt");
+	file << u12[] << endl;
 }
 {
-ofstream file("./data/p1.txt");
-file << p1[] << endl;
+	// ofstream file("./data/p1.txt");
+	ofstream file("p1.txt");
+	file << p1[] << endl;
 }
 {
-ofstream file("./data/R0.txt");
-file << R0 << endl;
+	// ofstream file("./data/R0.txt");
+	ofstream file("R0.txt");
+	file << R0 << endl;
 }
 {
-ofstream file("./data/U1.txt");
-file << U1 << endl;
+	// ofstream file("./data/U1.txt");
+	ofstream file("U1.txt");
+	file << U1 << endl;
 }
