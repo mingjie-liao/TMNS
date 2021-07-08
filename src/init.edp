@@ -2,7 +2,7 @@
 real nu = 1./100.;
 real dt = 0.05;
 real t = 0;
-real nt = 1/dt;
+// real nt = 1/dt;
 real U0=0;
 real G=1;
 real J=0.04;
@@ -55,7 +55,7 @@ problem NS ([u1, u2, p], [v1, v2, q])
 real Z=1;
 real K=1;
 real R0;
-real Ua;
+// real Ua;
 real U1=0;
 
 up1 = u1;
@@ -70,42 +70,43 @@ t+=dt;
 	file << U1 << endl;
 }
 
-for (int i = 1; i <= nt; i++) {
+// for (int i = 0; i <= nt; i++) {
 	// Update
-	up1 = u1;
-	up2 = u2;
-	// Solve
-	fx = 0;
-	NS;
-	real Z1=int1d(Th1)(2*dx(u1)*N.x*(1-N.x*N.x)-(dx(u2)+dy(u1))*N.x*N.x*N.y+N.y*(1-N.x*N.x)*(dy(u1)+dx(u2))-2*dy(u2)*N.x*N.y*N.y);
-	real Z2=int1d(Th1)((dx(u2)+dy(u1))*(1-N.y*N.y)*N.x-2*dx(u1)*N.x*N.x*N.y+2*dy(u2)*(1-N.y*N.y)*N.y-N.x*N.y*N.y*(dy(u1)+dx(u2)));
-	real M1=Z1*J*Q*G;
-	real M2=Z2*J*Q*G;
-	// cout<<"M1 = "<<M1<<endl;
-	// cout<<"M2 = "<<M2<<endl;
-	R0=1/(1+U1)/(1+M1*M1+M2*M2);
-	// cout<<"R0 = "<<R0<<endl;
-	U1=U1+K*Z*R0;
-	// cout<<"U = "<<U1<<endl;
-	{
-        // ofstream file("./data/uk.txt", append);
-		ofstream file("uk.txt", append);
-        file << U1 << endl;
-    }
-	Ua+=U1;
-	// Plot
-	if (!(i % 5))
-		plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
-	cout << "i = " << i << ", t = "<<t<< endl;
-
-	t = t+dt;
-}
-Ua=dt*Ua;
+up1 = u1;
+up2 = u2;
+// Solve
+fx = 0;
+NS;
+real Z1=int1d(Th1)(2*dx(u1)*N.x*(1-N.x*N.x)-(dx(u2)+dy(u1))*N.x*N.x*N.y+N.y*(1-N.x*N.x)*(dy(u1)+dx(u2))-2*dy(u2)*N.x*N.y*N.y);
+real Z2=int1d(Th1)((dx(u2)+dy(u1))*(1-N.y*N.y)*N.x-2*dx(u1)*N.x*N.x*N.y+2*dy(u2)*(1-N.y*N.y)*N.y-N.x*N.y*N.y*(dy(u1)+dx(u2)));
+real M1=Z1*J*Q*G;
+real M2=Z2*J*Q*G;
+// cout<<"M1 = "<<M1<<endl;
+// cout<<"M2 = "<<M2<<endl;
+R0=1/(1+U1)/(1+M1*M1+M2*M2);
+// cout<<"R0 = "<<R0<<endl;
+U1=U1+K*Z*R0;
+// cout<<"U = "<<U1<<endl;
 {
-// ofstream file("./data/ua.txt");
-	ofstream file("ua.txt");
-	file << Ua << endl;
+	// ofstream file("./data/uk.txt", append);
+	ofstream file("uk.txt", append);
+	file << U1 << endl;
 }
+// Ua+=U1;
+// Plot
+// if (!(i % 5))
+// 	plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
+// cout << "i = " << i << ", t = "<<t<< endl;
+cout <<"t = "<<t<< endl;
+
+t = t+dt;
+// }
+// Ua=dt*Ua;
+// {
+// // ofstream file("./data/ua.txt");
+// 	ofstream file("ua.txt");
+// 	file << Ua << endl;
+// }
 
 // Rmess
 cout<<"Remessing..."<<endl;
@@ -156,41 +157,43 @@ problem NS1 ([u11, u12, p1], [v11, v12, q1])
 
 
 // real t = 0;
-for (int i = 0; i < nt; i++) {
-	// Update
-	up11 = u11;
-	up12 = u12;
-	// Solve
-	fx = 0;
-	NS1;
-	real Z1=int1d(Th2)(2*dx(u11)*N.x*(1-N.x*N.x)-(dx(u12)+dy(u11))*N.x*N.x*N.y+N.y*(1-N.x*N.x)*(dy(u11)+dx(u12))-2*dy(u12)*N.x*N.y*N.y);
-	real Z2=int1d(Th2)((dx(u12)+dy(u11))*(1-N.y*N.y)*N.x-2*dx(u11)*N.x*N.x*N.y+2*dy(u12)*(1-N.y*N.y)*N.y-N.x*N.y*N.y*(dy(u11)+dx(u12)));
-	real M1=Z1*J*Q*G;
-	real M2=Z2*J*Q*G;
-	// cout<<"M1 = "<<M1<<endl;
-	// cout<<"M2 = "<<M2<<endl;
-	R0=1/(1+U1)/(1+M1*M1+M2*M2);
-	cout<<"R0 = "<<R0<<endl;
-	U1=U1+K*Z*R0;
-	cout<<"U = "<<U1<<endl;
-	{
-        // ofstream file("./data/uk.txt", append);
-		ofstream file("uk.txt", append);
-        file << U1 << endl;
-    }
-	Ua+=U1;
-	// Plot
-	if (!(i % 4))
-		plot(coef=0.2, cmm="[u11, u12] and p", p, [u11, u12], wait=false);
-	cout << "i = " << i << ", t = "<<t<< endl;
-	t = t+dt;
-}
-Ua=dt*Ua;
+// for (int i = 0; i < nt; i++) {
+// Update
+up11 = u11;
+up12 = u12;
+// Solve
+fx = 0;
+NS1;
+Z1=int1d(Th2)(2*dx(u11)*N.x*(1-N.x*N.x)-(dx(u12)+dy(u11))*N.x*N.x*N.y+N.y*(1-N.x*N.x)*(dy(u11)+dx(u12))-2*dy(u12)*N.x*N.y*N.y);
+Z2=int1d(Th2)((dx(u12)+dy(u11))*(1-N.y*N.y)*N.x-2*dx(u11)*N.x*N.x*N.y+2*dy(u12)*(1-N.y*N.y)*N.y-N.x*N.y*N.y*(dy(u11)+dx(u12)));
+M1=Z1*J*Q*G;
+M2=Z2*J*Q*G;
+// cout<<"M1 = "<<M1<<endl;
+// cout<<"M2 = "<<M2<<endl;
+real R1=1/(1+U1)/(1+M1*M1+M2*M2);
+cout<<"R0 = "<<R0<<endl;
+// U1=U1+K*Z*R0;
+U1=U1+3/2*K*Z*R1-K/2*Z*R0;
+cout<<"U = "<<U1<<endl;
 {
-	// ofstream file("./data/ua.txt", append);
-	ofstream file("ua.txt", append);
-	file << Ua << endl;
+	// ofstream file("./data/uk.txt", append);
+	ofstream file("uk.txt", append);
+	file << U1 << endl;
 }
+// Ua+=U1;
+// Plot
+// if (!(i % 4))
+// 	plot(coef=0.2, cmm="[u11, u12] and p", p, [u11, u12], wait=false);
+// cout << "i = " << i << ", t = "<<t<< endl;
+cout << "t = "<<t<< endl;
+t = t+dt;
+// }
+// Ua=dt*Ua;
+// {
+// 	// ofstream file("./data/ua.txt", append);
+// 	ofstream file("ua.txt", append);
+// 	file << Ua << endl;
+// }
 {
 	// ofstream file("./data/u11.txt");
 	ofstream file("u11.txt");
@@ -209,7 +212,7 @@ Ua=dt*Ua;
 {
 	// ofstream file("./data/R0.txt");
 	ofstream file("R0.txt");
-	file << R0 << endl;
+	file << R1 << endl;
 }
 {
 	// ofstream file("./data/U1.txt");
