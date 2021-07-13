@@ -2,7 +2,8 @@ include "getARGV.idp"
 // Parameters
 mesh Th1 = readmesh("toto.msh");
 real nu = 1./100.;
-real dt = 0.05;
+real ts = 2;
+real dt = 0.05/ts;
 real t = getARGV(2, 0)*dt*2;
 real G=1;
 real J=0.04;
@@ -93,15 +94,17 @@ problem NS ([u11, u12, p1], [v11, v12, q1])
 	+ on(L2, L4, u11=0, u12=0)
 	+ on(L1, u11=25*(pow(sin(pi*t),2))*(1-pow(y/1.5,2)), u12=0);
 
-up11 = u11;
-up12 = u12;
-// Solve
-fx = 0;
-NS;
-t = t+dt;
-up11 = u11;
-up12 = u12;
-NS;
+for(int i=0;i<ts;i++){
+	up11 = u11;
+	up12 = u12;
+	// Solve
+	fx = 0;
+	NS;
+	t = t+dt;
+}
+// up11 = u11;
+// up12 = u12;
+// NS;
 {
 	ofstream file("uk.txt", append);
 	file << U2 << endl;
@@ -113,8 +116,8 @@ NS;
 
 if (!(t % 250) && (t>1))
 	plot(coef=0.2, cmm="[u11, u12] and p", p, [u11, u12], ps="velocity_t"+t+".eps");
-cout << "t = "<<t<< endl;
 t = t+dt;
+cout << "t = "<<t<< endl;
 
 {
 ofstream file("u11.txt");
