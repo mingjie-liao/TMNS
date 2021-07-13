@@ -14,7 +14,7 @@ $FreeFem -nw -v nn init.edp
 
 # to write a loop
 counter=2
-while(( ${counter}<40))
+while(( ${counter}<200))
 do
     echo "Time: ${counter}"
     # FreeFem++-nw NS.edp

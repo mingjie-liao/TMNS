@@ -81,6 +81,10 @@ U1=U1+K*Z*R0;
 	ofstream file("uk.txt", append);
 	file << U1 << endl;
 }
+{
+	ofstream file("rk.txt");
+	file << R0 << endl;
+}
 cout <<"t = "<<t<< endl;
 
 t = t+dt;

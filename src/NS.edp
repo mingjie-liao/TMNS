@@ -3,7 +3,7 @@ include "getARGV.idp"
 mesh Th1 = readmesh("toto.msh");
 real nu = 1./100.;
 real dt = 0.05;
-real t = getARGV(2, 0)*dt;
+real t = getARGV(2, 0)*dt*2;
 real G=1;
 real J=0.04;
 real Q=30;
@@ -98,9 +98,17 @@ up12 = u12;
 // Solve
 fx = 0;
 NS;
+t = t+dt;
+up11 = u11;
+up12 = u12;
+NS;
 {
 	ofstream file("uk.txt", append);
 	file << U2 << endl;
+}
+{
+	ofstream file("rk.txt", append);
+	file << R1 << endl;
 }
 
 if (!(t % 250) && (t>1))
