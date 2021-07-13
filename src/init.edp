@@ -52,7 +52,6 @@ problem NS ([u1, u2, p], [v1, v2, q])
 
 real Z=1;
 real K=1;
-// real Ua;
 real U1=0;
 
 {
@@ -67,22 +66,6 @@ for(int i=0; i<ts; i++){
 	t+=dt;
 }
 
-// up1 = u1;
-// up2 = u2;
-// // Solve
-// fx = 0;
-// NS;
-// t+=dt;
-// up1 = u1;
-// up2 = u2;
-// fx = 0;
-// NS;
-// t+=dt;
-// up1 = u1;
-// up2 = u2;
-// fx = 0;
-// NS;
-// t+=dt;
 real Z1=int1d(Th1)(2*dx(u1)*N.x*(1-N.x*N.x)-(dx(u2)+dy(u1))*N.x*N.x*N.y+N.y*(1-N.x*N.x)*(dy(u1)+dx(u2))-2*dy(u2)*N.x*N.y*N.y);
 real Z2=int1d(Th1)((dx(u2)+dy(u1))*(1-N.y*N.y)*N.x-2*dx(u1)*N.x*N.x*N.y+2*dy(u2)*(1-N.y*N.y)*N.y-N.x*N.y*N.y*(dy(u1)+dx(u2)));
 real M1=Z1*J*Q*G;
@@ -99,8 +82,7 @@ U1=U1+K*Z*R0;
 	file << R0 << endl;
 }
 cout <<"t = "<<t<< endl;
-
-// t = t+dt;
+cout <<"U = "<<U1<<endl;
 
 // Rmess
 cout<<"Remessing..."<<endl;
@@ -155,11 +137,6 @@ for(int i=0;i<ts;i++){
 	NS1;
 	t = t+dt;
 }
-// up11 = u11;
-// up12 = u12;
-// NS1;
-// t = t+dt;
-cout << "t = "<<t<< endl;
 
 {
 	ofstream file("u11.txt");
