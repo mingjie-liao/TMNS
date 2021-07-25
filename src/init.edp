@@ -1,6 +1,7 @@
 // Parameters
-real nu = 1./100.;
-real ts = 10;
+// real nu = 1./100.;
+real nu = 0.04;
+real ts = 2;
 real dt = 0.05/ts;
 real t = 0;
 real G=1;
@@ -37,9 +38,9 @@ problem NS ([u1, u2, p], [v1, v2, q])
 			+ dx(u2)*dx(v2) + dy(u2)*dy(v2)
 		)
 		- p*q*epsr
-		+ p*dx(v1) + p*dy(v2)
+		- p*dx(v1) + p*dy(v2)
 		//- fx*v1 
-		+ q*dx(u1) + q*dy(u2)
+		- q*dx(u1) + q*dy(u2)
 	)
 	+ int2d(Th1)(
 		- alpha*convect([up1, up2], -dt, up1)*v1
@@ -50,7 +51,7 @@ problem NS ([u1, u2, p], [v1, v2, q])
 	+ on(L2, L4, u1=0, u2=0)
 	+ on(L1, u1=25*(pow(sin(pi*t),2))*(1-pow(y/1.5,2)), u2=0);
 
-real Z=1;
+real Z=5e-5;
 real K=1;
 real U1=0;
 
@@ -68,10 +69,11 @@ for(int i=0; i<ts; i++){
 
 real Z1=int1d(Th1)(2*dx(u1)*N.x*(1-N.x*N.x)-(dx(u2)+dy(u1))*N.x*N.x*N.y+N.y*(1-N.x*N.x)*(dy(u1)+dx(u2))-2*dy(u2)*N.x*N.y*N.y);
 real Z2=int1d(Th1)((dx(u2)+dy(u1))*(1-N.y*N.y)*N.x-2*dx(u1)*N.x*N.x*N.y+2*dy(u2)*(1-N.y*N.y)*N.y-N.x*N.y*N.y*(dy(u1)+dx(u2)));
-real M1=Z1*J*Q*G;
-real M2=Z2*J*Q*G;
+real M1=Z1*J*G/Q;
+real M2=Z2*J*G/Q;
 real R0=1/(1+U1)/(1+M1*M1+M2*M2);
-U1=U1+K*Z*R0;
+U1=U1+dt*K*Z*R0;
+cout<<"sigma="<<M1*M1+M2*M2<<endl;
 
 {
 	ofstream file("uk.txt", append);
@@ -116,9 +118,9 @@ problem NS1 ([u11, u12, p1], [v11, v12, q1])
 			+ dx(u12)*dx(v12) + dy(u12)*dy(v12)
 		)
 		- p1*q1*epsr
-		+ p1*dx(v11) + p1*dy(v12)
+		- p1*dx(v11) + p1*dy(v12)
 		//- fx*v1 
-		+ q1*dx(u11) + q1*dy(u12)
+		- q1*dx(u11) + q1*dy(u12)
 	)
 	+ int2d(Th2)(
 		- alpha*convect([up11, up12], -dt, up11)*v11
