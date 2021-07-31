@@ -11,8 +11,8 @@ else
 fi
 
 # to write a loop
-counter=10
-while(( ${counter}<20))
+counter=30
+while(( ${counter}<50))
 do
     echo "Time: ${counter}"
     # FreeFem++-nw NS.edp

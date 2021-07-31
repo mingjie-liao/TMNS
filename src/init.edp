@@ -1,7 +1,7 @@
 // Parameters
 // real nu = 1./100.;
 real nu = 0.04;
-real ts = 2;
+real ts = 1;
 real dt = 0.05/ts;
 real t = 0;
 real G=1;
@@ -47,7 +47,9 @@ problem NS ([u1, u2, p], [v1, v2, q])
 		- alpha*convect([up1, up2], -dt, up2)*v2
 		- fx*v1
 	)
-                - int1d(Th1, L3)(25*p*v1)
+	+ int1d(Th1, L1)(nu*50*(pow(sin(pi*t),2))*y/1.5/1.5*v2)
+	+ int1d(Th1, L3)(nu*dx(u1)*(v1-v2)+p*v2)
+    // - int1d(Th1, L3)(25*p*v1)
 	+ on(L2, L4, u1=0, u2=0)
 	+ on(L1, u1=25*(pow(sin(pi*t),2))*(1-pow(y/1.5,2)), u2=0);
 
@@ -127,7 +129,9 @@ problem NS1 ([u11, u12, p1], [v11, v12, q1])
 		- alpha*convect([up11, up12], -dt, up12)*v12
 		- fx*v11
 	)
-                - int1d(Th2, L7)(25*p1*v11)
+	+ int1d(Th2, L5)(nu*50*(pow(sin(pi*t),2))*y/1.5/1.5*v12)
+	+ int1d(Th2, L7)(nu*dx(u11)*(v11-v12)+p1*v12)
+    //- int1d(Th2, L7)(25*p1*v11)
 	+ on(L6, L8, u11=0, u12=0)
 	+ on(L5, u11=25*(pow(sin(pi*t),2))*(1-pow(y/1.5,2)), u12=0);
 

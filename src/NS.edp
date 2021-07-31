@@ -3,7 +3,7 @@ include "getARGV.idp"
 mesh Th1 = readmesh("toto.msh");
 // real nu = 1./100.;
 real nu = 0.04;
-real ts = 2;
+real ts = 1;
 real dt = 0.05;
 real t = getARGV(2, 0)*dt;
 dt = dt/ts;
@@ -93,7 +93,9 @@ problem NS ([u11, u12, p1], [v11, v12, q1])
 		- alpha*convect([up11, up12], -dt, up12)*v12
 		- fx*v11
 	)
-                - int1d(Th2, L3)(25*p1*v11)
+	+ int1d(Th2, L1)(nu*50*(pow(sin(pi*t),2))*y/1.5/1.5*v12)
+	+ int1d(Th2, L3)(nu*dx(u11)*(v11-v12)+p1*v12)
+    //- int1d(Th2, L3)(25*p1*v11)
 	+ on(L2, L4, u11=0, u12=0)
 	+ on(L1, u11=25*(pow(sin(pi*t),2))*(1-pow(y/1.5,2)), u12=0);
 
