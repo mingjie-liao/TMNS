@@ -1,0 +1,182 @@
+verbosity=0;
+// Parameters
+func bb = [[-1, -2], [4, 2]]; // bounding box for the plot
+real R = 5, L = 15;// Parameters
+real nu = 1./100.;
+real dt = 0.05;
+real t = 0;
+// Mesh
+real a= 1.5, b= 5, c=15;
+border L1(t=0,1) { x=-b; y=a-3*t; }
+border L2(t=0,1) { x=-b+c*t; y=-a; }
+border L3(t=0,1) { x=c-5; y=3*t-a; }
+border L4(t=0,1) { x=2*b-c*t; y=a; }
+int n = 5;
+mesh Th1 = buildmesh(L1(2*n)+L2(10*n)+L3(2*n)+L4(10*n)); 
+plot(Th1,ps="./multiscale.eps",bw=1);
+{
+ifstream file("ua.txt");
+file >> u01[] ;
+}
+{
+ifstream file("ub.txt");
+file >> u02[] ;
+}
+{
+ifstream file("p1.txt");
+file >> p[] ;
+}
+{
+ifstream file("w1.txt");
+file >> w1 ;
+}
+{
+ifstream file("w2.txt");
+file >> w2 ;
+}
+
+
+// Fespace
+fespace Xh1(Th1, P2);
+Xh1 u01；
+Xh1 u02；
+Xh1 u1, v1;
+Xh1 u2, v2;
+Xh1 u1=u01;
+Xh2 u2=u02;
+Xh1 up1, up2;
+Xh1 psi, phi;
+Xh1 fx;
+fespace Mh1(Th1, P1);
+Mh1 p, q;
+real alpha = 1/dt;
+real epsr=1e-8;
+real tolP=1e-4;
+problem NS ([u1, u2, p], [v1, v2, q])
+	= int2d(Th1)(
+		  alpha*(u1*v1 + u2*v2)
+		+nu * (
+			  dx(u1)*dx(v1) + dy(u1)*dy(v1)
+			+ dx(u2)*dx(v2) + dy(u2)*dy(v2)
+		)
+		- p*q*epsr
+		+ p*dx(v1) + p*dy(v2)
+		//- fx*v1 
+		+ q*dx(u1) + q*dy(u2)
+	)
+	+ int2d(Th1)(
+		- alpha*convect([up1, up2], -dt, up1)*v1
+		- alpha*convect([up1, up2], -dt, up2)*v2
+		- fx*v1
+	)
+                - int1d(Th1, L3)(25*p*v1)
+	+ on(L2, L4, u1=0, u2=0)
+	+ on(L1, u1=25*(pow(sin(pi*t),2))*(1-pow(y/1.5,2)), u2=0);
+real S1;
+real S2;
+real Sa;
+real Sb;
+for (int i = 1; i <= nt; i++) {
+	// Update
+	up1 = u1;
+	up2 = u2;
+	// Solve
+	fx = 0;
+	NS;
+	S1=u1；
+                S2=u2;
+	// cout<<"U = "<<U1<<endl;
+	{
+        // ofstream file("./data/uk.txt", append);
+		ofstream file("S1.txt", append);
+                                ofstream file("S2.txt", append);
+        file << S1 << endl;
+        file << S1 << endl;
+    }
+	Sa+=S1;
+                Sb+=S2;
+	// Plot
+	if (!(i % 20))
+		plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
+	cout << "i = " << i << ", t = "<<t<< endl;
+
+	t = t+dt;
+}
+Sa=dt*Sa;
+Sb=dt*Sb;
+{
+// ofstream file("./data/Sa.txt");
+	ofstream file("Sa.txt");
+	file << Sa << endl;
+}
+{
+// ofstream file("./data/Sa.txt");
+	ofstream file("Sb.txt");
+	file << Sb << endl;
+}
+real err1 = u1 - u01;
+real err2=u2-u02;
+real error;
+real O=err1+err2;
+cout << "error =" << sqrt(int2d(disk)( Oˆ2) )<< endl;
+if(error < tolP) break;
+//zqj
+macro Grad(u1, u2) [dx(u1), dy(u1), dx(u2), dy(u2)]//
+macro UgradV(u1, u2, v1, v2) [[u1, u2]'*[dx(v1), dy(v1)], [u1, u2]'*[dx(v2), dy(v2)] ]//
+macro div(u1, u2)  (dx(u1) + dy(u2))//
+//  FE Space
+fespace Xh(Th1, P2);
+Xh w1;
+Xh w2;
+Xh j1, j2;
+Xh dw1, dw2;
+fespace Mh(Th, P1);
+Mh q, k;
+Mh dq;
+// Loop on vicosity
+//while(1) {
+	//int n;
+	//real err = 0;
+	// Newton Loop
+	//for (n = 0; n < 15; n++) {
+		solve Oseen([dw1, dw2, dq], [j1, j2, k])
+			= int2d(Th)(
+					G*nu*(Grad(dw1,dw2)'*Grad(j1,j2))
+                                                                +G*nu*[dx(dw1),dx(dw2),dy(dw1),dy(dw2)]'*Grad(j1,j2))
+				+G* UgradV(dw1,dw2, Sa, Sb)'*[j1,j2]
+				+ G*UgradV( Sa, Sb,dw1,dw2)'*[j1,j2]
+				- div(dw1,dw2)*k- div(j1,j2)*dq
+				- 1e-8*dq*k// stabilization term
+			)
+			- int2d(Th)(
+				  G*nu*(Grad(w1,w2)'*Grad(j1,j2))
+                                                                +G*nu*[dx(w1),dx(w2),dy(w1),dy(w2)]'*Grad(j1,j2))
+				+ G*UgradV(w1,w2, Sa, Sb)'*[j1,j2]
+                                                                + G*UgradV(Sa,Sb, w1, w2)'*[j1,j2]
+				- div(Sa,Sb)*k - div(j1,j2)*q
+				- 1e-8*q*k
+			)
+			+ on(1,2,3,4,dw1=0,dw2=0)
+			;
+
+		w1[] -= dw1[];
+		w2[] -= dw2[];
+		q[] -= dq[];
+real ua=u1+w1;
+real ub=u2+w2;
+{
+ofstream file("ua.txt");
+file << ua[] << endl;
+}
+{
+ofstream file("ub.txt");
+file << ub[]  << endl;
+}
+{
+ofstream file("w1.txt");
+file << w1[] << endl;
+}
+{
+ofstream file("w2.txt");
+file << w2[] << endl;
+}
