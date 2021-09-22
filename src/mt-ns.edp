@@ -32,8 +32,6 @@ Xh1 w2=0;
 Xh1 j1, j2;
 Xh1 dw1, dw2;
 
-// u01=0;
-// u02=0;
 fespace Mh1(Th1, P1);
 Mh1 p, q;
 Mh1 qn, k;
@@ -42,7 +40,7 @@ Mh1 dqn;
 real alpha = 1/dt;
 real epsr=1e-8;
 real tolP=1e-3;
-real topN = 1e-3;
+real topN = 1e-6;
 real G=1;
 real err=0;
 real L2error=0;
@@ -73,7 +71,7 @@ macro Grad(u1, u2) [dx(u1), dy(u1), dx(u2), dy(u2)] //
 macro UgradV(u1, u2, v1, v2) [[u1, u2]'*[dx(v1), dy(v1)], [u1, u2]'*[dx(v2), dy(v2)] ] //
 macro div(u1, u2)  (dx(u1) + dy(u2)) //
 
-for (int ntot=0; ntot < 5; ntot++) {
+for (int ntot=0; ntot < 50; ntot++) {
 	cout<<ntot<<endl;
 	for (int i = 1; i <= nt; i++) {
 		// Update
@@ -85,8 +83,8 @@ for (int ntot=0; ntot < 5; ntot++) {
 		Sa[]+=u1[];
 		Sb[]+=u2[];
 		// Plot
-		if (!(i % 20))
-			plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
+		// if (!(i % 20))
+			// plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
 		cout << "i = " << i << ", t = "<<t<< endl;
 
 		t = t+dt;
@@ -107,15 +105,7 @@ for (int ntot=0; ntot < 5; ntot++) {
 	L2error = sqrt(int2d(Th1)((u1-u01)^2) + int2d(Th1)((u2-u02)^2));
 	cout << "L2error ="<<L2error<< endl;
 	if(L2error< tolP) break;
-//zqj
-	// macro Grad(u1, u2) [dx(u1), dy(u1), dx(u2), dy(u2)]//
-	// macro UgradV(u1, u2, v1, v2) [[u1, u2]'*[dx(v1), dy(v1)], [u1, u2]'*[dx(v2), dy(v2)] ]//
-	// macro div(u1, u2)  (dx(u1) + dy(u2))//
 
-// Loop on vicosity
-//while(1) {
-	//int n;
-	//real err = 0;
 	// Newton Loop
 	for (n = 0; n < 15; n++) {
 		solve Oseen([dw1, dw2, dqn], [j1, j2, k])
@@ -138,11 +128,11 @@ for (int ntot=0; ntot < 5; ntot++) {
 			+ on(1,2,3,4,dw1=0,dw2=0);
 		w1[] -= dw1[];
 		w2[] -= dw2[];
-		cout<<dw1[].linfty<<endl;
 		qn[] -= dqn[];
 		err= dw1[].linfty + dw2[].linfty + dqn[].linfty;
+		cout<<err<<endl;
 		if(err < topN){
-			cout<<"Newton successfull!";
+			cout<<"Newton successfull in "<<n<<" steps!"<<endl;
 			break;
 		}
 		if( n>3 && err > 10.){
@@ -150,8 +140,6 @@ for (int ntot=0; ntot < 5; ntot++) {
 			break;
 		}
 	}
-	// ua=u1+w1;
-	// ub=u2+w2;
 	u1[] += w1[];
 	u2[] += w2[];
 	u01[] = u1[];
