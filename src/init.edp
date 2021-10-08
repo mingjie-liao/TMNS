@@ -39,9 +39,9 @@ problem NS ([u1, u2, p], [v1, v2, q])
 			+ dx(u2)*dx(v2) + dy(u2)*dy(v2)
 		)
 		- p*q*epsr
-		- p*dx(v1) + p*dy(v2)
+		- p*dx(v1) - p*dy(v2)
 		//- fx*v1 
-		- q*dx(u1) + q*dy(u2)
+		- q*dx(u1) - q*dy(u2)
 	)
 	+ int2d(Th1)(
 		- alpha*convect([up1, up2], -dt, up1)*v1
@@ -123,9 +123,9 @@ problem NS1 ([u11, u12, p1], [v11, v12, q1])
 			+ dx(u12)*dx(v12) + dy(u12)*dy(v12)
 		)
 		- p1*q1*epsr
-		- p1*dx(v11) + p1*dy(v12)
+		- p1*dx(v11) - p1*dy(v12)
 		//- fx*v1 
-		- q1*dx(u11) + q1*dy(u12)
+		- q1*dx(u11) - q1*dy(u12)
 	)
 	+ int2d(Th2)(
 		- alpha*convect([up11, up12], -dt, up11)*v11

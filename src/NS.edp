@@ -84,9 +84,9 @@ problem NS ([u11, u12, p1], [v11, v12, q1])
 			+ dx(u12)*dx(v12) + dy(u12)*dy(v12)
 		)
 		- p1*q1*epsr
-		- p1*dx(v11) + p1*dy(v12)
+		- p1*dx(v11) - p1*dy(v12)
 		//- fx*v1 
-		- q1*dx(u11) + q1*dy(u12)
+		- q1*dx(u11) - q1*dy(u12)
 	)
 	+ int2d(Th2)(
 		- alpha*convect([up11, up12], -dt, up11)*v11

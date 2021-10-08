@@ -31,6 +31,9 @@ Xh1 w1=0;
 Xh1 w2=0;
 Xh1 j1, j2;
 Xh1 dw1, dw2;
+// Xh1 V1=u1-u01;
+// Xh1 V2=u2-u02;
+Xh1 V1, V2;
 
 fespace Mh1(Th1, P1);
 Mh1 p, q;
@@ -39,7 +42,7 @@ Mh1 dqn;
 
 real alpha = 1/dt;
 real epsr=1e-8;
-real tolP=1e-3;
+real tolP=1e-5;
 real topN = 1e-6;
 real G=1;
 real err=0;
@@ -53,14 +56,14 @@ problem NS ([u1, u2, p], [v1, v2, q])
 			+ dx(u2)*dx(v2) + dy(u2)*dy(v2)
 		)
 		- p*q*epsr
-		+ p*dx(v1) + p*dy(v2)
+		- p*dx(v1) - p*dy(v2)
 		//- fx*v1 
-		+ q*dx(u1) + q*dy(u2)
+		- q*dx(u1) - q*dy(u2)
 	)
 	+ int2d(Th1)(
 		- alpha*convect([up1, up2], -dt, up1)*v1
 		- alpha*convect([up1, up2], -dt, up2)*v2
-		- fx*v1
+		//- fx*v1
 	)
 	+ int1d(Th1, L1)(nu*50*(pow(sin(pi*t),2))*y/1.5/1.5*v2)
 	+ int1d(Th1, L3)(nu*dx(u1)*(v1-v2)+p*v2)
@@ -72,7 +75,15 @@ macro UgradV(u1, u2, v1, v2) [[u1, u2]'*[dx(v1), dy(v1)], [u1, u2]'*[dx(v2), dy(
 macro div(u1, u2)  (dx(u1) + dy(u2)) //
 
 for (int ntot=0; ntot < 50; ntot++) {
-	cout<<ntot<<endl;
+	Sa = 0;
+	Sb = 0;
+	u01[] = u1[];
+	u02[] = u2[];
+
+	//cout << "max(ux) = " << u1[].linfty << endl;
+	//cout << "max(ux) = " << u1[].linfty << endl;
+	//cout << "avg(ux) = " << Sa[].linfty << endl;
+	cout << "step: " <<ntot<<endl;
 	for (int i = 1; i <= nt; i++) {
 		// Update
 		up1 = u1;
@@ -85,8 +96,9 @@ for (int ntot=0; ntot < 50; ntot++) {
 		// Plot
 		// if (!(i % 20))
 			// plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
-		cout << "i = " << i << ", t = "<<t<< endl;
-
+		// cout << "i = " << i << ", t = "<<t<< endl;
+		//cout << "max(ux) = " << u1[].linfty << endl;
+		//cout << "max(ux) = " << u1[].linfty << endl;
 		t = t+dt;
 	}
 	Sa=dt*Sa;
@@ -101,8 +113,10 @@ for (int ntot=0; ntot < 50; ntot++) {
 	// 	// ofstream file("Sb.txt");
 	// 	file << Sb[] << endl;
 	// }
-
-	L2error = sqrt(int2d(Th1)((u1-u01)^2) + int2d(Th1)((u2-u02)^2));
+    V1[]=u1[]-u01[];
+    V2[]=u2[]-u02[];
+	// L2error = sqrt(int2d(Th1)((u1-u01)^2) + int2d(Th1)((u2-u02)^2));
+	L2error = sqrt(int2d(Th1)((V1)^2) + int2d(Th1)((V2)^2));
 	cout << "L2error ="<<L2error<< endl;
 	if(L2error< tolP) break;
 
@@ -114,7 +128,7 @@ for (int ntot=0; ntot < 50; ntot++) {
 				+G*nu*[dx(dw1),dx(dw2),dy(dw1),dy(dw2)]'*Grad(j1,j2)
 				+G*UgradV(dw1,dw2, Sa, Sb)'*[j1,j2]
 				+G*UgradV( Sa, Sb,dw1,dw2)'*[j1,j2]
-				- div(dw1,dw2)*k- div(j1,j2)*dqn
+				- div(dw1,dw2)*k+ div(j1,j2)*dqn
 				- 1e-8*dqn*k// stabilization term
 			)
 			- int2d(Th1)(
@@ -122,15 +136,16 @@ for (int ntot=0; ntot < 50; ntot++) {
 				+G*nu*[dx(w1),dx(w2),dy(w1),dy(w2)]'*Grad(j1,j2)
 				+ G*UgradV(w1,w2, Sa, Sb)'*[j1,j2]
 				+ G*UgradV(Sa,Sb, w1, w2)'*[j1,j2]
-				- div(Sa,Sb)*k - div(j1,j2)*qn
-				- 1e-8*qn*k
+				- div(w1,w2)*k + div(j1,j2)*qn
+                -[V1,V2]'*[j1,j2]
+				//- 1e-8*qn*k
 			)
 			+ on(1,2,3,4,dw1=0,dw2=0);
 		w1[] -= dw1[];
 		w2[] -= dw2[];
 		qn[] -= dqn[];
 		err= dw1[].linfty + dw2[].linfty + dqn[].linfty;
-		cout<<err<<endl;
+		cout<<"err of Newton: "<<err<<endl;
 		if(err < topN){
 			cout<<"Newton successfull in "<<n<<" steps!"<<endl;
 			break;
@@ -142,8 +157,8 @@ for (int ntot=0; ntot < 50; ntot++) {
 	}
 	u1[] += w1[];
 	u2[] += w2[];
-	u01[] = u1[];
-	u02[] = u2[];
+	// u01[] = u1[];
+	// u02[] = u2[];
 }
 
 	// {
