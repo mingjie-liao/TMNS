@@ -1,0 +1,179 @@
+verbosity=0;
+// Parameters
+func bb = [[-1, -2], [4, 2]]; // bounding box for the plot
+real R = 5, L = 15;// Parameters
+real nu = 1./100.;
+real dt = 0.05;
+real nt = 1/dt;
+real t = 0;
+
+// Mesh
+real a= 1.5, b= 5, c=15;
+border L1(t=0,1) { x=-b; y=a-3*t; }
+border L2(t=0,1) { x=-b+c*t; y=-a; }
+border L3(t=0,1) { x=c-5; y=3*t-a; }
+border L4(t=0,1) { x=2*b-c*t; y=a; }
+int n = 5;
+mesh Th1 = buildmesh(L1(2*n)+L2(10*n)+L3(2*n)+L4(10*n)); 
+// plot(Th1,ps="./multiscale.eps",bw=1);
+
+// Fespace
+fespace Xh1(Th1, P2);
+Xh1 u1, v1;
+Xh1 u2, v2;
+Xh1 u01, u02;
+Xh1 up1, up2;
+Xh1 psi, phi;
+Xh1 fx;
+Xh1 ua, ub;
+Xh1 Sa, Sb;
+Xh1 w1=0;
+Xh1 w2=0;
+Xh1 j1, j2;
+Xh1 dw1, dw2;
+// Xh1 V1=u1-u01;
+// Xh1 V2=u2-u02;
+Xh1 V1, V2;
+
+fespace Mh1(Th1, P1);
+Mh1 p, q;
+Mh1 qn, k;
+Mh1 dqn;
+
+real alpha = 1/dt;
+real epsr=1e-8;
+real tolP=1e-5;
+real topN = 1e-6;
+real G=1;
+real err=0;
+real L2error=0;
+
+problem NS ([u1, u2, p], [v1, v2, q])
+	= int2d(Th1)(
+		  alpha*(u1*v1 + u2*v2)
+		+nu * (
+			  dx(u1)*dx(v1) + dy(u1)*dy(v1)
+			+ dx(u2)*dx(v2) + dy(u2)*dy(v2)
+		)
+		- p*q*epsr
+		- p*dx(v1) - p*dy(v2)
+		//- fx*v1 
+		- q*dx(u1) - q*dy(u2)
+	)
+	+ int2d(Th1)(
+		- alpha*convect([up1, up2], -dt, up1)*v1
+		- alpha*convect([up1, up2], -dt, up2)*v2
+		//- fx*v1
+	)
+	+ int1d(Th1, L1)(nu*50*(pow(sin(pi*t),2))*y/1.5/1.5*v2)
+	+ int1d(Th1, L3)(nu*dx(u1)*(v1-v2)+p*v2)
+	+ on(L2, L4, u1=0, u2=0)
+	+ on(L1, u1=25*(pow(sin(pi*t),2))*(1-pow(y/1.5,2)), u2=0);
+
+macro Grad(u1, u2) [dx(u1), dy(u1), dx(u2), dy(u2)] //
+macro UgradV(u1, u2, v1, v2) [[u1, u2]'*[dx(v1), dy(v1)], [u1, u2]'*[dx(v2), dy(v2)] ] //
+macro div(u1, u2)  (dx(u1) + dy(u2)) //
+
+for (int ntot=0; ntot < 50; ntot++) {
+	Sa = 0;
+	Sb = 0;
+	u01[] = u1[];
+	u02[] = u2[];
+
+	//cout << "max(ux) = " << u1[].linfty << endl;
+	//cout << "max(ux) = " << u1[].linfty << endl;
+	//cout << "avg(ux) = " << Sa[].linfty << endl;
+	cout << "step: " <<ntot<<endl;
+	for (int i = 1; i <= nt; i++) {
+		// Update
+		up1 = u1;
+		up2 = u2;
+		// Solve
+		fx = 0;
+		NS;
+		Sa[]+=u1[];
+		Sb[]+=u2[];
+		// Plot
+		// if (!(i % 20))
+			// plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
+		// cout << "i = " << i << ", t = "<<t<< endl;
+		//cout << "max(ux) = " << u1[].linfty << endl;
+		//cout << "max(ux) = " << u1[].linfty << endl;
+		t = t+dt;
+	}
+	Sa=dt*Sa;
+	Sb=dt*Sb;
+	// {
+	// 	ofstream file("./data/Sa.txt");
+	// 	// ofstream file("Sa.txt");
+	// 	file << Sa[] << endl;
+	// }
+	// {
+	// 	ofstream file("./data/Sb.txt");
+	// 	// ofstream file("Sb.txt");
+	// 	file << Sb[] << endl;
+	// }
+    V1[]=u1[]-u01[];
+    V2[]=u2[]-u02[];
+	// L2error = sqrt(int2d(Th1)((u1-u01)^2) + int2d(Th1)((u2-u02)^2));
+	L2error = sqrt(int2d(Th1)((V1)^2) + int2d(Th1)((V2)^2));
+	cout << "L2error ="<<L2error<< endl;
+	if(L2error< tolP) break;
+
+	// Newton Loop
+	for (n = 0; n < 15; n++) {
+		solve Oseen([dw1, dw2, dqn], [j1, j2, k])
+			= int2d(Th1)(
+				G*nu*(Grad(dw1,dw2)'*Grad(j1,j2))
+				+G*nu*[dx(dw1),dx(dw2),dy(dw1),dy(dw2)]'*Grad(j1,j2)
+				+G*UgradV(dw1,dw2, Sa, Sb)'*[j1,j2]
+				+G*UgradV( Sa, Sb,dw1,dw2)'*[j1,j2]
+				- div(dw1,dw2)*k+ div(j1,j2)*dqn
+				- 1e-8*dqn*k// stabilization term
+			)
+			- int2d(Th1)(
+				G*nu*(Grad(w1,w2)'*Grad(j1,j2))
+				+G*nu*[dx(w1),dx(w2),dy(w1),dy(w2)]'*Grad(j1,j2)
+				+ G*UgradV(w1,w2, Sa, Sb)'*[j1,j2]
+				+ G*UgradV(Sa,Sb, w1, w2)'*[j1,j2]
+				- div(w1,w2)*k + div(j1,j2)*qn
+                -[V1,V2]'*[j1,j2]
+				//- 1e-8*qn*k
+			)
+			+ on(1,2,3,4,dw1=0,dw2=0);
+		w1[] -= dw1[];
+		w2[] -= dw2[];
+		qn[] -= dqn[];
+		err= dw1[].linfty + dw2[].linfty + dqn[].linfty;
+		cout<<"err of Newton: "<<err<<endl;
+		if(err < topN){
+			cout<<"Newton successfull in "<<n<<" steps!"<<endl;
+			break;
+		}
+		if( n>3 && err > 10.){
+			cout<<"Newton blowup!";
+			break;
+		}
+	}
+	u1[] += w1[];
+	u2[] += w2[];
+	// u01[] = u1[];
+	// u02[] = u2[];
+}
+
+	// {
+	// ofstream file("./data/ua.txt");
+	// file << u1[] << endl;
+	// }
+	// {
+	// ofstream file("./data/ub.txt");
+	// file << u2[]  << endl;
+	// }
+	// {
+	// ofstream file("./data/w1.txt");
+	// file << w1[] << endl;
+	// }
+	// {
+	// ofstream file("./data/w2.txt");
+	// file << w2[] << endl;
+	// }

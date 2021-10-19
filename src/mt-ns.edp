@@ -1,84 +1,146 @@
-verbosity=0;
+include "getARGV.idp"
 // Parameters
-func bb = [[-1, -2], [4, 2]]; // bounding box for the plot
-real R = 5, L = 15;// Parameters
-real nu = 1./100.;
+mesh Th1 = readmesh("toto.msh");
+// real nu = 1./100.;
+real nu = 0.04;
+real ts = 1;
 real dt = 0.05;
 real nt = 1/dt;
-real t = 0;
-
-// Mesh
-real a= 1.5, b= 5, c=15;
-border L1(t=0,1) { x=-b; y=a-3*t; }
-border L2(t=0,1) { x=-b+c*t; y=-a; }
-border L3(t=0,1) { x=c-5; y=3*t-a; }
-border L4(t=0,1) { x=2*b-c*t; y=a; }
-int n = 5;
-mesh Th1 = buildmesh(L1(2*n)+L2(10*n)+L3(2*n)+L4(10*n)); 
-// plot(Th1,ps="./multiscale.eps",bw=1);
-
-// Fespace
+real t = getARGV(2, 0)*dt;
+dt = dt/ts;
+real G=1;
+real J=0.04;
+real Q=30;
+real R0=0;
+real U1=0;
+real L2error=0;
+real tolP=1e-3;
+real topN = 1e-6;
+real err=0;
 fespace Xh1(Th1, P2);
 Xh1 u1, v1;
 Xh1 u2, v2;
-Xh1 u01, u02;
 Xh1 up1, up2;
-Xh1 psi, phi;
-Xh1 fx;
-Xh1 ua, ub;
-Xh1 Sa, Sb;
-Xh1 w1=0;
-Xh1 w2=0;
-Xh1 j1, j2;
-Xh1 dw1, dw2;
-// Xh1 V1=u1-u01;
-// Xh1 V2=u2-u02;
-Xh1 V1, V2;
-
+// Xh1 psi, phi;
+// Xh1 fx;
 fespace Mh1(Th1, P1);
 Mh1 p, q;
-Mh1 qn, k;
-Mh1 dqn;
-
 real alpha = 1/dt;
 real epsr=1e-8;
-real tolP=1e-5;
-real topN = 1e-6;
-real G=1;
-real err=0;
-real L2error=0;
+{
+ifstream file("u11.txt");
+file >> u1[] ;
+}
+{
+ifstream file("u12.txt");
+file >> u2[] ;
+}
+{
+ifstream file("p1.txt");
+file >> p[] ;
+}
+{
+ifstream file("R0.txt");
+file >> R0 ;
+}
+{
+ifstream file("U1.txt");
+file >> U1 ;
+}
 
-problem NS ([u1, u2, p], [v1, v2, q])
-	= int2d(Th1)(
-		  alpha*(u1*v1 + u2*v2)
+real Z1=int1d(Th1)(2*dx(u1)*N.x*(1-N.x*N.x)-(dx(u2)+dy(u1))*N.x*N.x*N.y+N.y*(1-N.x*N.x)*(dy(u1)+dx(u2))-2*dy(u2)*N.x*N.y*N.y);
+real Z2=int1d(Th1)((dx(u2)+dy(u1))*(1-N.y*N.y)*N.x-2*dx(u1)*N.x*N.x*N.y+2*dy(u2)*(1-N.y*N.y)*N.y-N.x*N.y*N.y*(dy(u1)+dx(u2)));
+real M1=Z1*J*G/Q;
+real M2=Z2*J*G/Q;
+real R1=1/(1+U1)/(1+M1*M1+M2*M2);
+real Z=5e-5;
+real K=400;
+real U2=U1+dt*3/2*K*Z*R1-dt*K/2*Z*R0;
+cout<<"sigma="<<M1*M1+M2*M2<<endl;
+// Rmess
+real d=U2;
+real a= 1.5, b= 5, c=15;
+int n = 5;
+border L1(t=0,1) { x=-b; y=a-3*t; }
+border L2(t=0,1) { x=-b+c*t; y=d*exp(-pow(x,2))-a; }
+border L3(t=0,1) { x=c-5; y=3*t-a; }
+border L4(t=0,1) { x=2*b-c*t; y=a-d*exp(-pow(x,2)); }
+mesh Th2 = buildmesh(L1(2*n)+L2(10*n)+L3(2*n)+L4(10*n)); 
+savemesh(Th2,"toto.msh");
+// Fespace
+fespace Xh2(Th2, P2);
+Xh2 u11, v11;
+Xh2 u22, v22;
+Xh2 u011, u022;
+Xh2 up11, up22;
+Xh2 uaa, ubb;
+Xh2 Saa, Sbb;
+Xh2 w11=0;
+Xh2 w22=0;
+Xh2 j11, j22;
+Xh2 dw11, dw22;
+Xh2 V11, V22;
+fespace Mh2(Th2, P1);
+Mh2 p1, q1;
+// Mh2 p1, q1;
+Mh2 qnn, k1;
+Mh2 dqnn;
+
+matrix A=interpolate(Xh2,Xh1);
+matrix B=interpolate(Mh2,Mh1);
+u11[] = A*u1[];
+u22[] = A*u2[];
+p1[] = B*p[];
+// Fespace
+// fespace Xh2(Th2, P2);
+// Xh2 u011, u022;
+// // Xh2 psi, phi;
+// // Xh2 fx;
+// Xh2 uaa, ubb;
+// Xh2 Saa, Sbb;
+// Xh2 w11=0;
+// Xh2 w22=0;
+// Xh2 j11, j22;
+// Xh2 dw11, dw22;
+// Xh1 V1=u1-u01;
+// Xh1 V2=u2-u02;
+// Xh2 V11, V22;
+
+// fespace Mh2(Th2, P1);
+// Mh2 p1, q1;
+// Mh2 qnn, k1;
+// Mh2 dqnn;
+problem NS1([u11, u22, p1], [v11, v22, q1])
+	= int2d(Th2)(
+		  alpha*(u11*v11 + u22*v22)
 		+nu * (
-			  dx(u1)*dx(v1) + dy(u1)*dy(v1)
-			+ dx(u2)*dx(v2) + dy(u2)*dy(v2)
+			  dx(u11)*dx(v11) + dy(u11)*dy(v11)
+			+ dx(u22)*dx(v22) + dy(u22)*dy(v22)
 		)
-		- p*q*epsr
-		- p*dx(v1) - p*dy(v2)
+		- p1*q1*epsr
+		- p1*dx(v11) - p1*dy(v22)
 		//- fx*v1 
-		- q*dx(u1) - q*dy(u2)
+		- q1*dx(u11) - q1*dy(u22)
 	)
-	+ int2d(Th1)(
-		- alpha*convect([up1, up2], -dt, up1)*v1
-		- alpha*convect([up1, up2], -dt, up2)*v2
+	+ int2d(Th2)(
+		- alpha*convect([up11, up22], -dt, up11)*v11
+		- alpha*convect([up11, up22], -dt, up22)*v22
 		//- fx*v1
 	)
-	+ int1d(Th1, L1)(nu*50*(pow(sin(pi*t),2))*y/1.5/1.5*v2)
-	+ int1d(Th1, L3)(nu*dx(u1)*(v1-v2)+p*v2)
-	+ on(L2, L4, u1=0, u2=0)
-	+ on(L1, u1=25*(pow(sin(pi*t),2))*(1-pow(y/1.5,2)), u2=0);
+	+ int1d(Th2, L1)(nu*50*(pow(sin(pi*t),2))*y/1.5/1.5*v22)
+	+ int1d(Th2, L3)(nu*dx(u11)*(v11-v22)+p1*v22)
+	+ on(L2, L4, u11=0, u22=0)
+	+ on(L1, u11=25*(pow(sin(pi*t),2))*(1-pow(y/1.5,2)), u22=0);
 
-macro Grad(u1, u2) [dx(u1), dy(u1), dx(u2), dy(u2)] //
-macro UgradV(u1, u2, v1, v2) [[u1, u2]'*[dx(v1), dy(v1)], [u1, u2]'*[dx(v2), dy(v2)] ] //
-macro div(u1, u2)  (dx(u1) + dy(u2)) //
+macro Grad(u11, u22) [dx(u11), dy(u11), dx(u22), dy(u22)] //
+macro UgradV(u11, u22, v11, v22) [[u11, u22]'*[dx(v11), dy(v11)], [u11, u22]'*[dx(v22), dy(v22)] ] //
+macro div(u11, u22)  (dx(u11) + dy(u22)) //
 
 for (int ntot=0; ntot < 50; ntot++) {
-	Sa = 0;
-	Sb = 0;
-	u01[] = u1[];
-	u02[] = u2[];
+	Saa = 0;
+	Sbb = 0;
+	u011[] = u11[];
+	u022[] = u22[];
 
 	//cout << "max(ux) = " << u1[].linfty << endl;
 	//cout << "max(ux) = " << u1[].linfty << endl;
@@ -86,23 +148,23 @@ for (int ntot=0; ntot < 50; ntot++) {
 	cout << "step: " <<ntot<<endl;
 	for (int i = 1; i <= nt; i++) {
 		// Update
-		up1 = u1;
-		up2 = u2;
+		up11 = u11;
+		up22 = u22;
 		// Solve
-		fx = 0;
-		NS;
-		Sa[]+=u1[];
-		Sb[]+=u2[];
+		// fx = 0;
+		NS1;
+		Saa[]+=u11[];
+		Sbb[]+=u22[];
 		// Plot
 		// if (!(i % 20))
-			// plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
+		plot(coef=0.2, cmm="[u1, u2] and p", p1, [u11, u22], wait=false);
 		// cout << "i = " << i << ", t = "<<t<< endl;
 		//cout << "max(ux) = " << u1[].linfty << endl;
 		//cout << "max(ux) = " << u1[].linfty << endl;
 		t = t+dt;
 	}
-	Sa=dt*Sa;
-	Sb=dt*Sb;
+	Saa=dt*Saa;
+	Sbb=dt*Sbb;
 	// {
 	// 	ofstream file("./data/Sa.txt");
 	// 	// ofstream file("Sa.txt");
@@ -113,38 +175,38 @@ for (int ntot=0; ntot < 50; ntot++) {
 	// 	// ofstream file("Sb.txt");
 	// 	file << Sb[] << endl;
 	// }
-    V1[]=u1[]-u01[];
-    V2[]=u2[]-u02[];
+    V11[]=u11[]-u011[];
+    V22[]=u22[]-u022[];
 	// L2error = sqrt(int2d(Th1)((u1-u01)^2) + int2d(Th1)((u2-u02)^2));
-	L2error = sqrt(int2d(Th1)((V1)^2) + int2d(Th1)((V2)^2));
+	L2error = sqrt(int2d(Th2)((V11)^2) + int2d(Th2)((V22)^2));
 	cout << "L2error ="<<L2error<< endl;
 	if(L2error< tolP) break;
 
 	// Newton Loop
 	for (n = 0; n < 15; n++) {
-		solve Oseen([dw1, dw2, dqn], [j1, j2, k])
-			= int2d(Th1)(
-				G*nu*(Grad(dw1,dw2)'*Grad(j1,j2))
-				+G*nu*[dx(dw1),dx(dw2),dy(dw1),dy(dw2)]'*Grad(j1,j2)
-				+G*UgradV(dw1,dw2, Sa, Sb)'*[j1,j2]
-				+G*UgradV( Sa, Sb,dw1,dw2)'*[j1,j2]
-				- div(dw1,dw2)*k+ div(j1,j2)*dqn
-				- 1e-8*dqn*k// stabilization term
+		solve Oseen([dw11, dw22, dqnn], [j11, j22, k1])
+			= int2d(Th2)(
+				G*nu*(Grad(dw11,dw22)'*Grad(j11,j22))
+				+G*nu*[dx(dw11),dx(dw22),dy(dw11),dy(dw22)]'*Grad(j11,j22)
+				+G*UgradV(dw11,dw22, Saa, Sbb)'*[j11,j22]
+				+G*UgradV( Saa, Sbb,dw11,dw22)'*[j11,j22]
+				- div(dw11,dw22)*k1+ div(j11,j22)*dqnn
+				- 1e-8*dqnn*k1// stabilization term
 			)
-			- int2d(Th1)(
-				G*nu*(Grad(w1,w2)'*Grad(j1,j2))
-				+G*nu*[dx(w1),dx(w2),dy(w1),dy(w2)]'*Grad(j1,j2)
-				+ G*UgradV(w1,w2, Sa, Sb)'*[j1,j2]
-				+ G*UgradV(Sa,Sb, w1, w2)'*[j1,j2]
-				- div(w1,w2)*k + div(j1,j2)*qn
-                -[V1,V2]'*[j1,j2]
-				//- 1e-8*qn*k
+			- int2d(Th2)(
+				G*nu*(Grad(w11,w22)'*Grad(j11,j22))
+				+G*nu*[dx(w11),dx(w22),dy(w11),dy(w22)]'*Grad(j11,j22)
+				+ G*UgradV(w11,w22, Saa, Sbb)'*[j11,j22]
+				+ G*UgradV(Saa,Sbb, w11, w22)'*[j11,j22]
+				- div(w11,w22)*k1 + div(j11,j22)*qnn
+                -[V11,V22]'*[j11,j22]
+				//- 1e-8*qnn*k1
 			)
-			+ on(1,2,3,4,dw1=0,dw2=0);
-		w1[] -= dw1[];
-		w2[] -= dw2[];
-		qn[] -= dqn[];
-		err= dw1[].linfty + dw2[].linfty + dqn[].linfty;
+			+ on(1,2,3,4,dw11=0,dw22=0);
+		w11[] -= dw11[];
+		w22[] -= dw22[];
+		qnn[] -= dqnn[];
+		err= dw11[].linfty + dw22[].linfty + dqnn[].linfty;
 		cout<<"err of Newton: "<<err<<endl;
 		if(err < topN){
 			cout<<"Newton successfull in "<<n<<" steps!"<<endl;
@@ -155,8 +217,8 @@ for (int ntot=0; ntot < 50; ntot++) {
 			break;
 		}
 	}
-	u1[] += w1[];
-	u2[] += w2[];
+	u11[] += w11[];
+	u22[] += w22[];
 	// u01[] = u1[];
 	// u02[] = u2[];
 }
@@ -177,3 +239,24 @@ for (int ntot=0; ntot < 50; ntot++) {
 	// ofstream file("./data/w2.txt");
 	// file << w2[] << endl;
 	// }
+
+{
+	ofstream file("u11.txt");
+	file << u11[] << endl;
+}
+{
+	ofstream file("u12.txt");
+	file << u22[] << endl;
+}
+{
+	ofstream file("p1.txt");
+	file << p1[] << endl;
+}
+{
+	ofstream file("R0.txt");
+	file << R0 << endl;
+}
+{
+	ofstream file("U1.txt");
+	file << U1 << endl;
+}
