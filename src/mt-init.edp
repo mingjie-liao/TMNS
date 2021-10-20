@@ -94,7 +94,7 @@ for (int ntot=0; ntot < 50; ntot++) {
 		// Plot
 		// if (!(i % 20))
 			// plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
-		plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
+		//plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
 		// cout << "i = " << i << ", t = "<<t<< endl;
 		// cout << "max(ux) = " << u1[].linfty << endl;
 		//cout << "max(ux) = " << u1[].linfty << endl;
@@ -302,7 +302,7 @@ for (int ntot=0; ntot < 50; ntot++) {
 		// Plot
 		// if (!(i % 20))
 
-		plot(coef=0.2, cmm="[u11, u22] and p", p1, [u11, u22], wait=false);
+		//plot(coef=0.2, cmm="[u11, u22] and p", p1, [u11, u22], wait=false);
 			// plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
 		// cout << "i = " << i << ", t = "<<t<< endl;
 		// cout << "max(ux) = " << u11[].linfty << endl;

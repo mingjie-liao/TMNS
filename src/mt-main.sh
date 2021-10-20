@@ -1,3 +1,4 @@
+#!/bin/sh
 if test `uname` = "Darwin"
 then
     # FreeFem++-nw init.edp
