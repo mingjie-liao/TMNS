@@ -40,25 +40,117 @@ ifstream file("p1.txt");
 file >> p[] ;
 }
 {
-ifstream file("R0.txt");
+ifstream file("r.txt");
 file >> R0 ;
 }
 {
-ifstream file("U1.txt");
+ifstream file("u.txt");
 file >> U1 ;
 }
 
-real Z1=int1d(Th1)(2*dx(u1)*N.x*(1-N.x*N.x)-(dx(u2)+dy(u1))*N.x*N.x*N.y+N.y*(1-N.x*N.x)*(dy(u1)+dx(u2))-2*dy(u2)*N.x*N.y*N.y);
-real Z2=int1d(Th1)((dx(u2)+dy(u1))*(1-N.y*N.y)*N.x-2*dx(u1)*N.x*N.x*N.y+2*dy(u2)*(1-N.y*N.y)*N.y-N.x*N.y*N.y*(dy(u1)+dx(u2)));
-real M1=Z1*J*G/Q;
-real M2=Z2*J*G/Q;
-real R1=1/(1+U1)/(1+M1*M1+M2*M2);
+// real Z1=int1d(Th1)(2*dx(u1)*N.x*(1-N.x*N.x)-(dx(u2)+dy(u1))*N.x*N.x*N.y+N.y*(1-N.x*N.x)*(dy(u1)+dx(u2))-2*dy(u2)*N.x*N.y*N.y);
+// real Z2=int1d(Th1)((dx(u2)+dy(u1))*(1-N.y*N.y)*N.x-2*dx(u1)*N.x*N.x*N.y+2*dy(u2)*(1-N.y*N.y)*N.y-N.x*N.y*N.y*(dy(u1)+dx(u2)));
+// real M1=Z1*J*G/Q;
+// real M2=Z2*J*G/Q;
+// real R1=1/(1+U1)/(1+M1*M1+M2*M2);
+// real Z=5e-5;
+// real K=400;
+// real U2=U1+dt*3/2*K*Z*R1-dt*K/2*Z*R0;
+// cout<<"sigma="<<M1*M1+M2*M2<<endl;
+
+problem NS ([u1, u2, p], [v1, v2, q])
+	= int2d(Th1)(
+		  alpha*(u1*v1 + u2*v2)
+		+nu * (
+			  dx(u1)*dx(v1) + dy(u1)*dy(v1)
+			+ dx(u2)*dx(v2) + dy(u2)*dy(v2)
+		)
+		- p*q*epsr
+		- p*dx(v1) - p*dy(v2)
+		//- fx*v1 
+		- q*dx(u1) - q*dy(u2)
+	)
+	+ int2d(Th1)(
+		- alpha*convect([up1, up2], -dt, up1)*v1
+		- alpha*convect([up1, up2], -dt, up2)*v2
+		// - fx*v1
+	)
+	+ int1d(Th1, 1)(nu*50*(pow(sin(pi*t),2))*y/1.5/1.5*v2)
+	+ int1d(Th1, 3)(nu*dx(u1)*(v1-v2)+p*v2)
+    // - int1d(Th1, L3)(25*p*v1)
+	+ on(2, 4, u1=0, u2=0)
+	+ on(1, u1=25*(pow(sin(pi*t),2))*(1-pow(y/1.5,2)), u2=0);
+
 real Z=5e-5;
 real K=400;
-real U2=U1+dt*3/2*K*Z*R1-dt*K/2*Z*R0;
-cout<<"sigma="<<M1*M1+M2*M2<<endl;
+real U = 0;
+real R1 = 0;
+// real U2 = 0;
+real Z1 = 0;
+real Z2 = 0;
+real M1 = 0;
+real M2 = 0;
+real R = 0;
+
+Z1=int1d(Th1)(2*dx(u1)*N.x*(1-N.x*N.x)-(dx(u2)+dy(u1))*N.x*N.x*N.y+N.y*(1-N.x*N.x)*(dy(u1)+dx(u2))-2*dy(u2)*N.x*N.y*N.y);
+Z2=int1d(Th1)((dx(u2)+dy(u1))*(1-N.y*N.y)*N.x-2*dx(u1)*N.x*N.x*N.y+2*dy(u2)*(1-N.y*N.y)*N.y-N.x*N.y*N.y*(dy(u1)+dx(u2)));
+M1=Z1*J*G/Q;
+M2=Z2*J*G/Q;
+R=1/(1+U1)/(1+M1*M1+M2*M2);
+
+for (int i = 2; i <= nt; i++) {
+	// Update
+	up1 = u1;
+	up2 = u2;
+	// Solve
+	// fx = 0;
+	NS;
+	Z1=int1d(Th1)(2*dx(u1)*N.x*(1-N.x*N.x)-(dx(u2)+dy(u1))*N.x*N.x*N.y+N.y*(1-N.x*N.x)*(dy(u1)+dx(u2))-2*dy(u2)*N.x*N.y*N.y);
+	Z2=int1d(Th1)((dx(u2)+dy(u1))*(1-N.y*N.y)*N.x-2*dx(u1)*N.x*N.x*N.y+2*dy(u2)*(1-N.y*N.y)*N.y-N.x*N.y*N.y*(dy(u1)+dx(u2)));
+	M1=Z1*J*G/Q;
+	M2=Z2*J*G/Q;
+	R1=1/(1+U1)/(1+M1*M1+M2*M2);
+	R+=R1;
+	cout<<"step: "<<i<<", R="<<R<<endl;
+	// U += U1+dt*K*Z*R0;
+	// U2=U1+dt*3/2*K*Z*R1-dt*K/2*Z*R0;
+	// U+=U2;
+	// cout<<"step: "<<i<<"sigma="<<M1*M1+M2*M2<<endl;
+	// U1 = U2;
+	// R0 = R1;
+	// Plot
+	// if (!(i % 20))
+		// plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
+	//plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
+	cout << "i = " << i << ", U = "<<U<<endl;
+	// cout << "max(ux) = " << u1[].linfty << endl;
+	//cout << "max(ux) = " << u1[].linfty << endl;
+	t = t+dt;
+}
+// U = U*dt;
+R=R*dt;
+U=U1+3/2*K*Z*R-K/2*Z*R0;
+{
+	ofstream file("uk.txt", append);
+	file << U << endl;
+}   
+{
+	ofstream file("rk.txt", append);
+	file << R << endl;
+}
+{
+	ofstream file("u.txt");
+	file << U << endl;
+}
+{
+	ofstream file("r.txt");
+	file << R << endl;
+}
+// cout <<"t = "<<t<< endl;
+cout <<"U = "<<U<<endl;
+
 // Rmess
-real d=U2;
+real d=U;
 real a= 1.5, b= 5, c=15;
 int n = 5;
 border L1(t=0,1) { x=-b; y=a-3*t; }
@@ -252,11 +344,11 @@ for (int ntot=0; ntot < 50; ntot++) {
 	ofstream file("p1.txt");
 	file << p1[] << endl;
 }
-{
-	ofstream file("R0.txt");
-	file << R0 << endl;
-}
-{
-	ofstream file("U1.txt");
-	file << U1 << endl;
-}
+// {
+// 	ofstream file("R0.txt");
+// 	file << R0 << endl;
+// }
+// {
+// 	ofstream file("U1.txt");
+// 	file << U1 << endl;
+// }

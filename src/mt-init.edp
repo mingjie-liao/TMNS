@@ -1,7 +1,8 @@
 verbosity=0;
 // Parameters
 func bb = [[-1, -2], [4, 2]]; // bounding box for the plot
-real R = 5, L = 15;// Parameters
+// real R = 5, L = 15;// Parameters
+real L = 15;
 real nu = 1./100.;
 real dt = 0.05;
 real nt = 1/dt;
@@ -183,32 +184,72 @@ real U1=0;
 real J=0.04; // MLiao: check J's value!
 real Q=30;
 
-{
-	ofstream file("uk.txt");
-	file << U1 << endl;
-}   
 real Z1=int1d(Th1)(2*dx(u1)*N.x*(1-N.x*N.x)-(dx(u2)+dy(u1))*N.x*N.x*N.y+N.y*(1-N.x*N.x)*(dy(u1)+dx(u2))-2*dy(u2)*N.x*N.y*N.y);
 real Z2=int1d(Th1)((dx(u2)+dy(u1))*(1-N.y*N.y)*N.x-2*dx(u1)*N.x*N.x*N.y+2*dy(u2)*(1-N.y*N.y)*N.y-N.x*N.y*N.y*(dy(u1)+dx(u2)));
 real M1=Z1*J*G/Q;
 real M2=Z2*J*G/Q;
-real R0=1/(1+U1)/(1+M1*M1+M2*M2);
-U1=U1+dt*K*Z*R0;
+real R=1/(1+U1)/(1+M1*M1+M2*M2);
+// U1=U1+dt*K*Z*R0;
 cout<<"sigma="<<M1*M1+M2*M2<<endl;
 
+// real U = U1;
+// real R = 0;
+real R1 = 0;
+real U = 0;
+
+for (int i = 2; i <= nt; i++) {
+	// Update
+	up1 = u1;
+	up2 = u2;
+	// Solve
+	fx = 0;
+	NS;
+	Z1=int1d(Th1)(2*dx(u1)*N.x*(1-N.x*N.x)-(dx(u2)+dy(u1))*N.x*N.x*N.y+N.y*(1-N.x*N.x)*(dy(u1)+dx(u2))-2*dy(u2)*N.x*N.y*N.y);
+	Z2=int1d(Th1)((dx(u2)+dy(u1))*(1-N.y*N.y)*N.x-2*dx(u1)*N.x*N.x*N.y+2*dy(u2)*(1-N.y*N.y)*N.y-N.x*N.y*N.y*(dy(u1)+dx(u2)));
+	M1=Z1*J*G/Q;
+	M2=Z2*J*G/Q;
+	R1=1/(1+U1)/(1+M1*M1+M2*M2);
+	// U += U1+dt*K*Z*R0;
+	// U2=U1+dt*3/2*K*Z*R1-dt*K/2*Z*R0;
+	// U+=U2;
+	R+=R1;
+	cout<<"step: "<<i<<", R="<<R<<endl;
+	// U1 = U2;
+	// R0 = R1;
+	// Plot
+	// if (!(i % 20))
+		// plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
+	//plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
+	// cout << "i = " << i << ", U = "<<U<<", U2="<<U2<< endl;
+	// cout << "max(ux) = " << u1[].linfty << endl;
+	//cout << "max(ux) = " << u1[].linfty << endl;
+	t = t+dt;
+}
+R = R*dt;
+U = K*Z*R;
 {
-	ofstream file("uk.txt", append);
-	file << U1 << endl;
+	ofstream file("uk.txt");
+	file << U << endl;
+}   
+
+{
+	ofstream file("u.txt");
+	file << U << endl;
+}
+{
+	ofstream file("r.txt");
+	file << R << endl;
 }
 {
 	ofstream file("rk.txt");
-	file << R0 << endl;
+	file << R << endl;
 }
 cout <<"t = "<<t<< endl;
-cout <<"U = "<<U1<<endl;
+cout <<"U = "<<U<<endl;
 
 // Rmess
 cout<<"Remessing..."<<endl;
-real d=U1;
+real d=U;
 border L5(t=0,1) { x=-b; y=a-3*t; }
 border L6(t=0,1) { x=-b+c*t; y=d*exp(-pow(x,2))-a; }
 border L7(t=0,1) { x=c-5; y=3*t-a; }
@@ -399,11 +440,4 @@ T += t;
 	ofstream file("p1.txt");
 	file << p1[] << endl;
 }
-{
-	ofstream file("R0.txt");
-	file << R0 << endl;
-}
-{
-	ofstream file("U1.txt");
-	file << U1 << endl;
-}
+
