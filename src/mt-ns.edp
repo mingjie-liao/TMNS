@@ -111,7 +111,7 @@ for (int i = 2; i <= nt; i++) {
 	M2=Z2*J*G/Q;
 	R1=1/(1+U1)/(1+M1*M1+M2*M2);
 	R+=R1;
-	cout<<"step: "<<i<<", R="<<R<<endl;
+	cout<<"step: "<<i<<", R1="<<R1<<endl;
 	// U += U1+dt*K*Z*R0;
 	// U2=U1+dt*3/2*K*Z*R1-dt*K/2*Z*R0;
 	// U+=U2;
@@ -129,7 +129,8 @@ for (int i = 2; i <= nt; i++) {
 }
 // U = U*dt;
 R=R*dt;
-U=U1+3/2*K*Z*R-K/2*Z*R0;
+// U=U1+3/2*K*Z*R-K/2*Z*R0;
+U=U1+K*Z*R;
 {
 	ofstream file("uk.txt", append);
 	file << U << endl;
