@@ -1,4 +1,3 @@
-#!/bin/sh
 if test `uname` = "Darwin"
 then
     # FreeFem++-nw init.edp
@@ -15,7 +14,7 @@ $FreeFem -nw -v nn mt-init.edp
 
 # to write a loop
 counter=2
-while(( ${counter}<10))
+while(( ${counter}<26))
 do
     echo "Time: ${counter}"
     # FreeFem++-nw NS.edp

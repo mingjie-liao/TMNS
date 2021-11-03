@@ -14,10 +14,10 @@ border L1(t=0,1) { x=-b; y=a-3*t; }
 border L2(t=0,1) { x=-b+c*t; y=-a; }
 border L3(t=0,1) { x=c-5; y=3*t-a; }
 border L4(t=0,1) { x=2*b-c*t; y=a; }
-int n = 5;
-mesh Th1 = buildmesh(L1(2*n)+L2(10*n)+L3(2*n)+L4(10*n)); 
-// mesh Th1 = buildmesh(L1(n)+L2(7*n)+L3(n)+L4(7*n)); 
-plot(Th1,ps="./multiscale.eps",bw=1);
+int n = 2;
+mesh Th1 = buildmesh(L1(2*n)+L2(14*n)+L3(2*n)+L4(14*n)); 
+// plot(Th1,ps="./multiscale.eps",bw=1);
+plot(Th1,bw=1);
 
 // Fespace
 fespace Xh1(Th1, P2);
@@ -42,8 +42,8 @@ Mh1 dqn;
 
 real alpha = 1/dt;
 real epsr=1e-8;
-real tolP=1e-3;
-real topN = 1e-6;
+real tolP=1e-5;
+real topN = 1e-7;
 real G=1;
 real err=0;
 real L2error=0;
@@ -74,7 +74,7 @@ macro Grad(u1, u2) [dx(u1), dy(u1), dx(u2), dy(u2)] //
 macro UgradV(u1, u2, v1, v2) [[u1, u2]'*[dx(v1), dy(v1)], [u1, u2]'*[dx(v2), dy(v2)] ] //
 macro div(u1, u2)  (dx(u1) + dy(u2)) //
 
-for (int ntot=0; ntot < 50; ntot++) {
+for (int ntot=0; ntot < 100; ntot++) {
 	Sa = 0;
 	Sb = 0;
 	u01[] = u1[];
@@ -96,7 +96,7 @@ for (int ntot=0; ntot < 50; ntot++) {
 		// Plot
 		// if (!(i % 20))
 			// plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
-		plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=1);
+		//plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
 		// cout << "i = " << i << ", t = "<<t<< endl;
 		// cout << "max(ux) = " << u1[].linfty << endl;
 		//cout << "max(ux) = " << u1[].linfty << endl;
@@ -255,9 +255,8 @@ border L5(t=0,1) { x=-b; y=a-3*t; }
 border L6(t=0,1) { x=-b+c*t; y=d*exp(-pow(x,2))-a; }
 border L7(t=0,1) { x=c-5; y=3*t-a; }
 border L8(t=0,1) { x=2*b-c*t; y=a-d*exp(-pow(x,2)); }
-n = 5;
-mesh Th2 = buildmesh(L5(2*n)+L6(10*n)+L7(2*n)+L8(10*n)); 
-// mesh Th2 = buildmesh(L5(n)+L6(7*n)+L7(n)+L8(7*n)); 
+n = 2;
+mesh Th2 = buildmesh(L5(2*n)+L6(14*n)+L7(2*n)+L8(14*n)); 
 // plot(Th2,ps="multiscale1.eps",bw=1,wait=false);
 savemesh(Th2,"toto.msh");
 // Fespace
@@ -323,7 +322,7 @@ problem NS1([u11, u22, p1], [v11, v22, q1])
 // macro Grad(u11, u22) [dx(u11), dy(u11), dx(u22), dy(u22)] //
 // macro UgradV(u11, u22, v11, v22) [[u11, u22]'*[dx(v11), dy(v11)], [u11, u22]'*[dx(v22), dy(v22)] ] //
 // macro div(u11, u22)  (dx(u11) + dy(u22)) //
-for (int ntot=0; ntot < 50; ntot++) {
+for (int ntot=0; ntot < 300; ntot++) {
 	Saa = 0;
 	Sbb = 0;
 	u011[] = u11[];
