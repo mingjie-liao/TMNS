@@ -16,7 +16,8 @@ border L3(t=0,1) { x=c-5; y=3*t-a; }
 border L4(t=0,1) { x=2*b-c*t; y=a; }
 int n = 5;
 mesh Th1 = buildmesh(L1(2*n)+L2(10*n)+L3(2*n)+L4(10*n)); 
-// plot(Th1,ps="./multiscale.eps",bw=1);
+// mesh Th1 = buildmesh(L1(n)+L2(7*n)+L3(n)+L4(7*n)); 
+plot(Th1,ps="./multiscale.eps",bw=1);
 
 // Fespace
 fespace Xh1(Th1, P2);
@@ -95,7 +96,7 @@ for (int ntot=0; ntot < 50; ntot++) {
 		// Plot
 		// if (!(i % 20))
 			// plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
-		//plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=false);
+		plot(coef=0.2, cmm="[u1, u2] and p", p, [u1, u2], wait=1);
 		// cout << "i = " << i << ", t = "<<t<< endl;
 		// cout << "max(ux) = " << u1[].linfty << endl;
 		//cout << "max(ux) = " << u1[].linfty << endl;
@@ -256,6 +257,7 @@ border L7(t=0,1) { x=c-5; y=3*t-a; }
 border L8(t=0,1) { x=2*b-c*t; y=a-d*exp(-pow(x,2)); }
 n = 5;
 mesh Th2 = buildmesh(L5(2*n)+L6(10*n)+L7(2*n)+L8(10*n)); 
+// mesh Th2 = buildmesh(L5(n)+L6(7*n)+L7(n)+L8(7*n)); 
 // plot(Th2,ps="multiscale1.eps",bw=1,wait=false);
 savemesh(Th2,"toto.msh");
 // Fespace
